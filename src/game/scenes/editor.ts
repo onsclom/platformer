@@ -1,31 +1,37 @@
 import { assert } from "../../assert";
 import {
+  justPressed,
   keysDown,
   leftClickDown,
   pointerPos,
   rightClickDown,
 } from "../../input";
 import { Camera } from "../components/camera";
+import { Level } from "../components/level";
 import { playerHeight, playerWidth } from "../components/player";
 
-const gridSize = 1;
+export const gridSize = 1;
 
 export function create() {
   const state = {
-    level: {
-      solidTiles: [
-        { x: 0, y: 0 },
-        { x: 2, y: 1 },
-      ],
-    },
+    level: Level.create(),
     camera: Camera.create(),
     hoveredTile: null as { x: number; y: number } | null,
+
+    placingType: "solid" as "solid" | "lava",
   };
   return state;
 }
 type State = ReturnType<typeof create>;
 
 export function update(state: State, dt: number) {
+  if (justPressed.has("1")) {
+    state.placingType = "solid";
+  }
+  if (justPressed.has("2")) {
+    state.placingType = "lava";
+  }
+
   {
     const canvas = document.querySelector("canvas")!;
     const hoverPos = pointerPos
@@ -50,7 +56,11 @@ export function update(state: State, dt: number) {
 
   if (leftClickDown && state.hoveredTile) {
     // TODO: toggle hovered tile
-    state.level.solidTiles.push({ ...state.hoveredTile });
+    if (state.placingType === "solid") {
+      state.level.solidTiles.push({ ...state.hoveredTile });
+    } else if (state.placingType === "lava") {
+      state.level.lavaTiles.push({ ...state.hoveredTile });
+    }
   }
 
   // CAMERA CONTROLS
@@ -85,17 +95,27 @@ export function update(state: State, dt: number) {
     state.camera.x += dt * panSpeed;
   }
 
-  // remove duplicates from solidTiles
-  const uniqueTiles = new Set(
+  const uniqueSolidTiles = new Set(
     state.level.solidTiles.map((tile) => `${tile.x},${tile.y}`),
   );
-
   if (rightClickDown && state.hoveredTile) {
     const tileToRemove = `${state.hoveredTile.x},${state.hoveredTile.y}`;
-    uniqueTiles.delete(tileToRemove);
+    uniqueSolidTiles.delete(tileToRemove);
   }
+  state.level.solidTiles = Array.from(uniqueSolidTiles).map((tile) => {
+    const [x, y] = tile.split(",").map(Number);
+    assert(x !== undefined && y !== undefined);
+    return { x, y };
+  });
 
-  state.level.solidTiles = Array.from(uniqueTiles).map((tile) => {
+  const uniqueLavaTiles = new Set(
+    state.level.lavaTiles.map((tile) => `${tile.x},${tile.y}`),
+  );
+  if (rightClickDown && state.hoveredTile) {
+    const tileToRemove = `${state.hoveredTile.x},${state.hoveredTile.y}`;
+    uniqueLavaTiles.delete(tileToRemove);
+  }
+  state.level.lavaTiles = Array.from(uniqueLavaTiles).map((tile) => {
     const [x, y] = tile.split(",").map(Number);
     assert(x !== undefined && y !== undefined);
     return { x, y };
@@ -104,7 +124,7 @@ export function update(state: State, dt: number) {
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
   Camera.drawWithLetterBoxedCamera(state.camera, ctx, (ctx) => {
-    drawLevel(state.level, ctx);
+    Level.draw(state.level, ctx);
 
     // draw hovered
     if (state.hoveredTile) {
@@ -134,36 +154,17 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
     );
     ctx.restore();
   });
+
+  // UI
+  //////////////////
+
+  const canvasRect = ctx.canvas.getBoundingClientRect();
+
+  ctx.fillStyle = "black";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.font = `${canvasRect.width * 0.05}px Arial`;
+  ctx.fillText(state.placingType, canvasRect.width / 2, canvasRect.height);
 }
 
 export const Editor = { create, update, draw };
-
-// TODO: move this somewhere else?
-export function drawLevel(
-  level: State["level"],
-  ctx: CanvasRenderingContext2D,
-) {
-  // draw tile shadows
-  ctx.fillStyle = "#aaa";
-  level.solidTiles.forEach((tile) => {
-    ctx.save();
-    ctx.translate(
-      tile.x * gridSize - gridSize / 2 + 0.1,
-      -tile.y * gridSize - gridSize / 2 + 0.1,
-    );
-    ctx.fillRect(0, 0, gridSize, gridSize);
-    ctx.restore();
-  });
-
-  // draw top
-  ctx.fillStyle = "white";
-  level.solidTiles.forEach((tile) => {
-    ctx.save();
-    ctx.translate(
-      tile.x * gridSize - gridSize / 2,
-      -tile.y * gridSize - gridSize / 2,
-    );
-    ctx.fillRect(0, 0, gridSize, gridSize);
-    ctx.restore();
-  });
-}

@@ -2,25 +2,20 @@ import { animate } from "../../animate";
 import { playSound } from "../../audio";
 import { justPressed, justReleased, keysDown } from "../../input";
 import { Camera } from "../components/camera";
+import { Level } from "../components/level";
 import {
   initJumpBufferTime,
   Player,
   playerHeight,
   playerWidth,
 } from "../components/player";
-import { drawLevel } from "./editor";
 
 type State = ReturnType<typeof create>;
 
 export function create() {
   return {
     camera: Camera.create(),
-    level: {
-      solidTiles: [
-        { x: 0, y: 0 },
-        { x: 2, y: 1 },
-      ],
-    },
+    level: Level.create(),
     player: Player.create(),
   };
 }
@@ -38,7 +33,7 @@ export function update(state: State, dt: number) {
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
   Camera.drawWithLetterBoxedCamera(state.camera, ctx, () => {
     // draw solid tiles
-    drawLevel(state.level, ctx);
+    Level.draw(state.level, ctx);
 
     Player.draw(state.player, ctx);
   });
@@ -158,18 +153,11 @@ function moveAndSlidePlayer(state: State, dt: number) {
 
   // allow jumping when grounded
   if (
-    justPressed.has(" ") ||
-    justPressed.has("w") ||
-    state.player.timeSinceJumpBuffered < state.player.jumpBufferTime
+    (keysDown.has(" ") || keysDown.has("w")) &&
+    state.player.timeSinceGrounded < coyoteTime
   ) {
-    if (state.player.timeSinceGrounded < coyoteTime) {
-      state.player.dy = jumpStrength;
-      state.player.timeSinceJumpBuffered = initJumpBufferTime;
-      playSound("jump");
-    } else {
-      if (justPressed.has(" ") || justPressed.has("w")) {
-        state.player.timeSinceJumpBuffered = 0;
-      }
-    }
+    state.player.dy = jumpStrength;
+    state.player.timeSinceGrounded = coyoteTime;
+    playSound("jump");
   }
 }

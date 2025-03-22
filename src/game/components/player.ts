@@ -3,7 +3,7 @@ export const initJumpBufferTime = 150;
 type State = ReturnType<typeof create>;
 
 export const playerWidth = 0.8;
-export const playerHeight = 1.6;
+export const playerHeight = 0.8;
 
 function create() {
   return {
@@ -12,9 +12,7 @@ function create() {
 
     dy: 0,
 
-    timeSinceJumpBuffered: initJumpBufferTime,
     timeSinceGrounded: 0,
-    jumpBufferTime: initJumpBufferTime,
   };
 }
 
