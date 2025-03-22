@@ -3,8 +3,8 @@ import { gridSize } from "../scenes/editor";
 type State = ReturnType<typeof create>;
 
 const maxLavaParticles = 1000;
-const lavaParticleSpawnHz = 20; // 10 per each lava block
-const lavaParticleLifetime = 500; // 1 second
+const lavaParticleSpawnHz = 20;
+const lavaParticleLifetime = 500;
 const fadeInTime = 100;
 
 export function create() {

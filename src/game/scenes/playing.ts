@@ -27,8 +27,8 @@ export function update(state: State, dt: number) {
     state.camera.y = state.player.y;
   }
 
-  moveAndSlidePlayer(state, dt);
-  Player.update(state.player, dt);
+  const wasWalking = moveAndSlidePlayer(state, dt);
+  Player.update(state.player, dt, wasWalking);
   Level.update(state.level, dt);
 }
 
@@ -143,6 +143,11 @@ function moveAndSlidePlayer(state: State, dt: number) {
             state.player.xScale = 1 + landSquash;
             state.player.yScale = 1 - landSquash;
             playSound("land");
+
+            const particleAmount = 20;
+            for (let i = 0; i < particleAmount; i++) {
+              Player.spawnParticle(state.player, 1.5);
+            }
           }
           state.player.y = tileTopLeft.y + playerHeight * 0.5;
           state.player.dy = 0;
@@ -166,5 +171,12 @@ function moveAndSlidePlayer(state: State, dt: number) {
     const jumpStretch = 0.25;
     state.player.xScale = 1 - jumpStretch;
     state.player.yScale = 1 + jumpStretch;
+
+    const particleAmount = 20;
+    for (let i = 0; i < particleAmount; i++) {
+      Player.spawnParticle(state.player, 1.5);
+    }
   }
+
+  return Math.abs(dx) > 0 && state.player.timeSinceGrounded === 0;
 }
