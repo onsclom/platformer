@@ -1,5 +1,5 @@
 import { update, draw, create } from "./game";
-import { assert } from "./game/assert";
+import { assert } from "./assert";
 import { clearInputs } from "./input";
 
 let canvas = document.querySelector("canvas");
@@ -52,7 +52,7 @@ function raf() {
     ctx.scale(devicePixelRatio, devicePixelRatio);
 
     timeToProcess += dt;
-    const physicHz = 1000;
+    const physicHz = 120;
     const physicTickMs = 1000 / physicHz;
     while (timeToProcess > physicTickMs) {
       timeToProcess -= physicTickMs;
@@ -77,3 +77,7 @@ if (import.meta.hot) {
     }
   });
 }
+
+document.addEventListener("contextmenu", function (event) {
+  event.preventDefault();
+});

@@ -1,9 +1,7 @@
-import { State } from "./index";
+import { State } from "../index";
 
 export function create() {
-  return {
-    zoomFactor: 1,
-  };
+  return {};
 }
 
 export function update(state: State, dt: number) {}
