@@ -1,0 +1,56 @@
+inspiration:
+https://dev-dwarf.itch.io/self
+https://x.com/Blukulele/status/1899143216194273735
+star of providence, balatro, platformer
+
+---
+
+CORE GAMEPLAY:
+- 10 waves
+  - each wave has different "level" tiles & enemy combos + frequencies
+  - they get progressively harder
+  - each wave lasts 60 seconds?
+  - end of wave, maybe there's a portal you need to get to?
+    - you can stay longer to get more coins, but it gets hard fast
+- lives and $ carry between waves
+- end of wave, has a wave recap (how much coins you earn)
+- after wave recap, it's shop time
+- on death or win, give run recap
+
+bullet/enemy ideas:
+- wall traveling tank
+  - walks along perimeter and shoots straight
+- homing missle (slow-ish but homes)
+- bullet rain
+- random wanderer enemy/bullets?
+  - they move with perlin noise?
+- tile patterns
+  - checkerboard
+  - rows / columns checkered
+  - area of denial
+- circular explosion area of denials
+- enemy that aims laser, but rotate towards player somewhat slowly
+
+purchase ideas:
+- heal 1 life
+- +1 max life
+- magnetic coins
+- +1 coin on map (2 -> 3 coins on map)
+- +1 jump (double jump, etc)
+- walljump?
+- slow bullet speed
+- slow bullet spawn rate
+- + player speed
+- shrink player hurtbox
+- cheaper purchases
+- longer invulnerable recovery time
+- rotating shield from hollow knight
+
+---
+
+now:
+- add UI
+  - current wave # / 10
+  - current wave progress
+  - $
+  - health
