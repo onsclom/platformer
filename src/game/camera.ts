@@ -1,11 +1,12 @@
 import { State } from "./index";
+import { levelDimension } from "./tiles";
 
 export function create() {
   return {
-    width: 100 * 1.1,
-    height: 100 * 1.1,
+    width: levelDimension * 5,
+    height: levelDimension * 5,
     x: 0,
-    y: 3,
+    y: 0,
     shakeFactor: 1, // 0 to 1
     angle: 0, // fun juice
   };
@@ -16,22 +17,8 @@ export function update(state: State, dt: number) {
   const shakeLength = 0.1;
   state.camera.shakeFactor *= (0.9 * shakeLength) ** (dt / 1000);
 
-  if (state.player.alive === false) {
-    state.player.timeDead += dt;
-    // animate camera to player and zoom in
-    state.camera.x = animate(state.camera.x, state.player.x, dt * 0.01);
-    state.camera.y = animate(state.camera.y, state.player.y, dt * 0.01);
-    state.camera.width = animate(state.camera.width, 50, dt * 0.01);
-    state.camera.height = animate(state.camera.height, 50, dt * 0.01);
-
-    const wobbleBuildUpTime = 1000;
-    const wobbleFactor =
-      (Math.min(wobbleBuildUpTime, state.player.timeDead) /
-        wobbleBuildUpTime) **
-      2;
-    state.camera.angle =
-      Math.sin(performance.now() * 0.005) * wobbleFactor * 0.1;
-  }
+  state.camera.x = state.player.x;
+  state.camera.y = state.player.y;
 }
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {}

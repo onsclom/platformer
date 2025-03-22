@@ -52,7 +52,7 @@ function raf() {
     ctx.scale(devicePixelRatio, devicePixelRatio);
 
     timeToProcess += dt;
-    const physicHz = 500;
+    const physicHz = 1000;
     const physicTickMs = 1000 / physicHz;
     while (timeToProcess > physicTickMs) {
       timeToProcess -= physicTickMs;

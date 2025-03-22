@@ -1,4 +1,3 @@
-// TODO: remove need for everything but state?
 import { playSound } from "../audio";
 import { justPressed, justReleased, keysDown } from "../input";
 import { animate, gamePosToCanvasPos } from "./camera";
@@ -23,8 +22,6 @@ function create() {
     dy: 0,
     speed: 50,
 
-    hitboxRadius: 0.5,
-
     alive: true,
     timeDead: 0,
 
@@ -48,25 +45,6 @@ function draw(state: State, ctx: CanvasRenderingContext2D) {
   {
     ctx.fillStyle = "#99f";
     ctx.fillRect(x, y, state.player.width, state.player.height);
-  }
-
-  // hitbox circle
-  // TODO: make this a heart
-  {
-    // ctx.beginPath();
-    // ctx.fillStyle = "#808";
-    const { x, y } = gamePosToCanvasPos(state.player.x, state.player.y);
-    // ctx.arc(x, y, state.player.hitboxRadius, 0, 2 * Math.PI);
-    // ctx.fill();
-
-    // draw unicode heart on hitbox
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "red";
-
-    const heartSize = 2;
-    ctx.font = `${heartSize}px Arial`;
-    ctx.fillText("♥", x, y + heartSize * 0.05);
   }
 
   ctx.fillStyle = "black";

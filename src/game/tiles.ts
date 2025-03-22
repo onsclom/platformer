@@ -1,7 +1,7 @@
 import { State } from "./index";
 import { assert } from "./assert";
 
-export const levelDimension = 20;
+export const levelDimension = 30;
 export const tileSize = 5;
 export const topLeftTileOnMap = {
   x: (-levelDimension / 2) * tileSize,
@@ -32,7 +32,12 @@ export function update(state: State, dt: number) {}
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = "gray";
-  ctx.fillRect(-50, -50, 100, 100);
+  ctx.fillRect(
+    topLeftTileOnMap.x,
+    topLeftTileOnMap.y,
+    levelDimension * tileSize,
+    -levelDimension * tileSize,
+  );
 
   state.level.forEach((cell, i) => {
     const x = i % levelDimension;

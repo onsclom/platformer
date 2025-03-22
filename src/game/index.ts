@@ -4,9 +4,6 @@ import Tiles from "./tiles";
 import Camera from "./camera";
 import WobbleEffect from "./wobble-effect";
 
-export const loadAnimationLength = 1500;
-export const waveTimeLength = 5;
-
 export type State = ReturnType<typeof create>;
 
 export function create() {
@@ -20,10 +17,6 @@ export function create() {
 }
 
 export function update(state: State, dt: number) {
-  if (justPressed.has("r")) {
-    Object.assign(state, create());
-  }
-
   WobbleEffect.update(state, dt);
   Camera.update(state, dt);
   Player.update(state, dt);

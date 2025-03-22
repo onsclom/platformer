@@ -1,15 +1,9 @@
-import coinSound from "./sounds/coin.wav";
 import deathSound from "./sounds/death.wav";
 import jumpSound from "./sounds/jump.wav";
 import landSound from "./sounds/land.wav";
-import levelLoadSound from "./sounds/level-load.wav";
 import shootSound from "./sounds/shoot.wav";
 
 const audio = {
-  coin: {
-    source: coinSound,
-    volume: 1,
-  },
   death: {
     source: deathSound,
     volume: 1,
@@ -21,10 +15,6 @@ const audio = {
   land: {
     source: landSound,
     volume: 1,
-  },
-  levelLoad: {
-    source: levelLoadSound,
-    volume: 0.5,
   },
   shoot: {
     source: shootSound,
