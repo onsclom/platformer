@@ -6,7 +6,7 @@ TODO: make this an actually good reuseable camera
   - game coords to canvas coords (rendering)
 */
 
-type State = ReturnType<typeof create>;
+export type State = ReturnType<typeof create>;
 function create() {
   return {
     width: 20,

@@ -28,6 +28,7 @@ export function update(state: State, dt: number) {
   }
 
   moveAndSlidePlayer(state, dt);
+  Player.update(state.player, dt);
   Level.update(state.level, dt);
 }
 
@@ -36,7 +37,7 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
     // draw solid tiles
     Level.draw(state.level, ctx);
 
-    Player.draw(state.player, ctx);
+    Player.draw(state.player, ctx, state.camera);
   });
 }
 
@@ -138,6 +139,9 @@ function moveAndSlidePlayer(state: State, dt: number) {
         if (state.player.dy <= 0) {
           const landSoundThreshold = -5;
           if (state.player.dy < landSoundThreshold) {
+            const landSquash = 0.25;
+            state.player.xScale = 1 + landSquash;
+            state.player.yScale = 1 - landSquash;
             playSound("land");
           }
           state.player.y = tileTopLeft.y + playerHeight * 0.5;
@@ -159,5 +163,8 @@ function moveAndSlidePlayer(state: State, dt: number) {
     state.player.dy = jumpStrength;
     state.player.timeSinceGrounded = coyoteTime;
     playSound("jump");
+    const jumpStretch = 0.25;
+    state.player.xScale = 1 - jumpStretch;
+    state.player.yScale = 1 + jumpStretch;
   }
 }
