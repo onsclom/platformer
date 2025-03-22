@@ -11,7 +11,6 @@ function create() {
     y: 0,
 
     dy: 0,
-
     timeSinceGrounded: 0,
   };
 }

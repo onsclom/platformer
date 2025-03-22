@@ -54,12 +54,21 @@ export function update(state: State, dt: number) {
     }
   }
 
+  const uniqueSolidTiles = new Set(
+    state.level.solidTiles.map((tile) => `${tile.x},${tile.y}`),
+  );
+  const uniqueLavaTiles = new Set(
+    state.level.lavaTiles.map((tile) => `${tile.x},${tile.y}`),
+  );
+
   if (leftClickDown && state.hoveredTile) {
     // TODO: toggle hovered tile
     if (state.placingType === "solid") {
-      state.level.solidTiles.push({ ...state.hoveredTile });
+      uniqueLavaTiles.delete(`${state.hoveredTile.x},${state.hoveredTile.y}`);
+      uniqueSolidTiles.add(`${state.hoveredTile.x},${state.hoveredTile.y}`);
     } else if (state.placingType === "lava") {
-      state.level.lavaTiles.push({ ...state.hoveredTile });
+      uniqueSolidTiles.delete(`${state.hoveredTile.x},${state.hoveredTile.y}`);
+      uniqueLavaTiles.add(`${state.hoveredTile.x},${state.hoveredTile.y}`);
     }
   }
 
@@ -95,9 +104,6 @@ export function update(state: State, dt: number) {
     state.camera.x += dt * panSpeed;
   }
 
-  const uniqueSolidTiles = new Set(
-    state.level.solidTiles.map((tile) => `${tile.x},${tile.y}`),
-  );
   if (rightClickDown && state.hoveredTile) {
     const tileToRemove = `${state.hoveredTile.x},${state.hoveredTile.y}`;
     uniqueSolidTiles.delete(tileToRemove);
@@ -108,9 +114,6 @@ export function update(state: State, dt: number) {
     return { x, y };
   });
 
-  const uniqueLavaTiles = new Set(
-    state.level.lavaTiles.map((tile) => `${tile.x},${tile.y}`),
-  );
   if (rightClickDown && state.hoveredTile) {
     const tileToRemove = `${state.hoveredTile.x},${state.hoveredTile.y}`;
     uniqueLavaTiles.delete(tileToRemove);
@@ -120,6 +123,8 @@ export function update(state: State, dt: number) {
     assert(x !== undefined && y !== undefined);
     return { x, y };
   });
+
+  Level.update(state.level, dt);
 }
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {

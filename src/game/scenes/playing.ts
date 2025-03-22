@@ -28,6 +28,7 @@ export function update(state: State, dt: number) {
   }
 
   moveAndSlidePlayer(state, dt);
+  Level.update(state.level, dt);
 }
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
@@ -56,7 +57,6 @@ function moveAndSlidePlayer(state: State, dt: number) {
   }
 
   state.player.timeSinceGrounded += dt;
-  state.player.timeSinceJumpBuffered += dt;
 
   // handle X-axis
   let dx = 0;
