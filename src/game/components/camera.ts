@@ -32,7 +32,7 @@ function drawWithLetterBoxedCamera(
   draw: (ctx: CanvasRenderingContext2D) => void,
 ) {
   const canvasRect = ctx.canvas.getBoundingClientRect();
-  ctx.fillStyle = "black";
+  ctx.fillStyle = "#8af";
   ctx.fillRect(0, 0, canvasRect.width, canvasRect.height);
 
   const aspectRatio = 1;
@@ -49,9 +49,9 @@ function drawWithLetterBoxedCamera(
   //////////////////
   ctx.save();
   ctx.translate(letterBoxed.x, letterBoxed.y);
-  ctx.beginPath();
-  ctx.rect(0, 0, minSide, minSide);
-  ctx.clip();
+  // ctx.beginPath();
+  // ctx.rect(0, 0, minSide, minSide);
+  // ctx.clip();
 
   // light blue background
   ctx.fillStyle = "#8af";
@@ -84,13 +84,16 @@ function drawWithLetterBoxedCamera(
 
   // UI SPACE
   //////////////////
-  ctx.strokeStyle = "green";
+  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = "red";
+  ctx.lineWidth = 0.005 * minSide;
   ctx.strokeRect(
     letterBoxed.x,
     letterBoxed.y,
     letterBoxed.width,
     letterBoxed.height,
   );
+  ctx.globalAlpha = 1;
 }
 
 function canvasPosToGamePos(

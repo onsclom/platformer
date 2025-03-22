@@ -4,7 +4,7 @@ export const justReleased = new Set<string>();
 export const justPressed = new Set<string>();
 
 // mouse and touch
-export const pointerPos = { x: 0, y: 0 }; // in canvas pos
+export let pointerPos = null as { x: number; y: number } | null;
 export let justLeftClicked = null as { x: number; y: number } | null;
 export let justRightClicked = null as { x: number; y: number } | null;
 export let leftClickDown = false;
@@ -29,8 +29,11 @@ document.addEventListener("keyup", (event) => {
 });
 
 document.addEventListener("pointermove", (event) => {
-  pointerPos.x = event.clientX;
-  pointerPos.y = event.clientY;
+  pointerPos = { x: event.clientX, y: event.clientY };
+});
+
+document.addEventListener("pointerleave", (event) => {
+  pointerPos = null;
 });
 
 document.addEventListener("pointerdown", (event) => {

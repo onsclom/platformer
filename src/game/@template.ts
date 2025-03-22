@@ -1,4 +1,4 @@
-import { State } from "./index";
+type State = ReturnType<typeof create>;
 
 export function create() {
   return {};

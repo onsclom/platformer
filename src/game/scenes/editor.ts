@@ -1,13 +1,12 @@
 import { assert } from "../../assert";
 import {
-  justLeftClicked,
-  justPressed,
   keysDown,
   leftClickDown,
   pointerPos,
   rightClickDown,
 } from "../../input";
 import { Camera } from "../components/camera";
+import { playerHeight, playerWidth } from "../components/player";
 
 const gridSize = 1;
 
@@ -18,12 +17,9 @@ export function create() {
         { x: 0, y: 0 },
         { x: 2, y: 1 },
       ],
-      lavaTiles: [],
-      spawn: { x: 0, y: 5 },
     },
     camera: Camera.create(),
-
-    hoveredTile: { x: 0, y: 0 },
+    hoveredTile: null as { x: number; y: number } | null,
   };
   return state;
 }
@@ -32,19 +28,27 @@ type State = ReturnType<typeof create>;
 export function update(state: State, dt: number) {
   {
     const canvas = document.querySelector("canvas")!;
-    const hoverPos = Camera.canvasPosToGamePos(
-      state.camera,
-      pointerPos,
-      canvas.getBoundingClientRect(),
-    );
-    state.hoveredTile.x = Math.round(hoverPos.x / gridSize);
-    state.hoveredTile.y = Math.round(hoverPos.y / gridSize);
-    // normalize -0 to 0
-    if (state.hoveredTile.x === 0) state.hoveredTile.x = 0;
-    if (state.hoveredTile.y === 0) state.hoveredTile.y = 0;
+    const hoverPos = pointerPos
+      ? Camera.canvasPosToGamePos(
+          state.camera,
+          pointerPos,
+          canvas.getBoundingClientRect(),
+        )
+      : null;
+    if (hoverPos) {
+      state.hoveredTile = {
+        x: Math.round(hoverPos.x / gridSize),
+        y: Math.round(hoverPos.y / gridSize),
+      };
+      // normalize -0 to 0
+      if (state.hoveredTile.x === 0) state.hoveredTile.x = 0;
+      if (state.hoveredTile.y === 0) state.hoveredTile.y = 0;
+    } else {
+      state.hoveredTile = null;
+    }
   }
 
-  if (leftClickDown) {
+  if (leftClickDown && state.hoveredTile) {
     // TODO: toggle hovered tile
     state.level.solidTiles.push({ ...state.hoveredTile });
   }
@@ -86,7 +90,7 @@ export function update(state: State, dt: number) {
     state.level.solidTiles.map((tile) => `${tile.x},${tile.y}`),
   );
 
-  if (rightClickDown) {
+  if (rightClickDown && state.hoveredTile) {
     const tileToRemove = `${state.hoveredTile.x},${state.hoveredTile.y}`;
     uniqueTiles.delete(tileToRemove);
   }
@@ -100,29 +104,66 @@ export function update(state: State, dt: number) {
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
   Camera.drawWithLetterBoxedCamera(state.camera, ctx, (ctx) => {
-    ctx.fillStyle = "white";
-    state.level.solidTiles.forEach((tile) => {
-      ctx.save();
-      ctx.translate(
-        tile.x * gridSize - gridSize / 2,
-        -tile.y * gridSize - gridSize / 2,
-      );
-      ctx.fillRect(0, 0, gridSize, gridSize);
-      ctx.restore();
-    });
+    drawLevel(state.level, ctx);
 
     // draw hovered
-    ctx.save();
-    ctx.translate(
-      state.hoveredTile.x * gridSize - gridSize / 2,
-      -state.hoveredTile.y * gridSize - gridSize / 2,
-    );
-    ctx.lineWidth = 0.1;
-    ctx.strokeStyle = "green";
-    ctx.strokeRect(0, 0, gridSize, gridSize);
+    if (state.hoveredTile) {
+      ctx.save();
+      ctx.translate(
+        state.hoveredTile.x * gridSize - gridSize / 2,
+        -state.hoveredTile.y * gridSize - gridSize / 2,
+      );
+      ctx.lineWidth = 0.1;
+      ctx.globalAlpha = 0.8;
+      ctx.strokeStyle = "black";
+      ctx.strokeRect(0, 0, gridSize, gridSize);
 
+      ctx.restore();
+    }
+
+    // draw player centered at camera
+    ctx.fillStyle = "green";
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.translate(state.camera.x, -state.camera.y);
+    ctx.fillRect(
+      -playerWidth / 2,
+      -playerHeight / 2,
+      playerWidth,
+      playerHeight,
+    );
     ctx.restore();
   });
 }
 
-export default { create, update, draw };
+export const Editor = { create, update, draw };
+
+// TODO: move this somewhere else?
+export function drawLevel(
+  level: State["level"],
+  ctx: CanvasRenderingContext2D,
+) {
+  // draw tile shadows
+  ctx.fillStyle = "#aaa";
+  level.solidTiles.forEach((tile) => {
+    ctx.save();
+    ctx.translate(
+      tile.x * gridSize - gridSize / 2 + 0.1,
+      -tile.y * gridSize - gridSize / 2 + 0.1,
+    );
+    ctx.fillRect(0, 0, gridSize, gridSize);
+    ctx.restore();
+  });
+
+  // draw top
+  ctx.fillStyle = "white";
+  level.solidTiles.forEach((tile) => {
+    ctx.save();
+    ctx.translate(
+      tile.x * gridSize - gridSize / 2,
+      -tile.y * gridSize - gridSize / 2,
+    );
+    ctx.fillRect(0, 0, gridSize, gridSize);
+    ctx.restore();
+  });
+}
