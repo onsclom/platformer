@@ -9,16 +9,34 @@ import {
 } from "../input";
 import { Camera } from "./camera";
 import { Level } from "./level";
-import { playerHeight, playerWidth } from "./player";
+import { playerColor, playerHeight, playerWidth } from "./player";
 
 export const gridSize = 1;
+
+// in progress
+type Tile =
+  | {
+      type: "solid";
+      x: number;
+      y: number;
+    }
+  | {
+      type: "lava";
+      x: number;
+      y: number;
+    }
+  | {
+      type: "cannon";
+      x: number;
+      y: number;
+      dir: "up" | "down" | "left" | "right";
+    };
 
 export function create() {
   const state = {
     level: Level.create(),
     camera: Camera.create(),
     hoveredTile: null as { x: number; y: number } | null,
-
     placingType: "solid" as "solid" | "lava",
   };
   return state;
@@ -78,12 +96,6 @@ export function update(state: State, dt: number) {
   // CAMERA CONTROLS
   //////////////////
 
-  if (keysDown.has("q")) {
-    state.camera.angle -= dt * 0.001;
-  }
-  if (keysDown.has("e")) {
-    state.camera.angle += dt * 0.001;
-  }
   if (keysDown.has("-")) {
     state.camera.width *= 1 + dt * 0.001;
     state.camera.height *= 1 + dt * 0.001;
@@ -93,7 +105,7 @@ export function update(state: State, dt: number) {
     state.camera.height *= 1 - dt * 0.001;
   }
 
-  const panSpeed = 0.008;
+  const panSpeed = 0.016;
   if (keysDown.has("w")) {
     state.camera.y += dt * panSpeed;
   }
@@ -153,16 +165,18 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
         state.hoveredTile.x * gridSize - gridSize / 2,
         -state.hoveredTile.y * gridSize - gridSize / 2,
       );
-      ctx.lineWidth = 0.1;
-      ctx.globalAlpha = 0.8;
+      ctx.lineWidth = 0.075;
       ctx.strokeStyle = "black";
+      // do dashed line and animated
+      ctx.setLineDash([0.2, 0.1]);
+      ctx.lineDashOffset = performance.now() * 0.001;
       ctx.strokeRect(0, 0, gridSize, gridSize);
 
       ctx.restore();
     }
 
     // draw player centered at camera
-    ctx.fillStyle = "green";
+    ctx.fillStyle = playerColor;
     ctx.save();
     ctx.globalAlpha = 0.5;
     ctx.translate(state.camera.x, -state.camera.y);
@@ -180,10 +194,16 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
 
   const canvasRect = ctx.canvas.getBoundingClientRect();
 
+  // put "editing" at top
   ctx.fillStyle = "black";
   ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.font = `${canvasRect.width * 0.025}px Arial`;
+  ctx.fillText("editing", canvasRect.width / 2, 0);
+
+  ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
-  ctx.font = `${canvasRect.width * 0.05}px Arial`;
+  ctx.font = `${canvasRect.width * 0.025}px Arial`;
   ctx.fillText(state.placingType, canvasRect.width / 2, canvasRect.height);
 }
 

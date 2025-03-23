@@ -3,7 +3,12 @@ import { playSound } from "../audio";
 import { justReleased, keysDown } from "../input";
 import { Camera } from "./camera";
 import { Level } from "./level";
-import { Player, playerHeight, playerWidth } from "./player";
+import {
+  Player,
+  playerHeight,
+  playerParticleSpawnRateWhileWalking,
+  playerWidth,
+} from "./player";
 
 type State = ReturnType<typeof create>;
 
@@ -35,7 +40,18 @@ export function update(state: State, dt: number) {
   if (state.player.alive) {
     walking = moveAndSlidePlayer(state, dt);
   }
-  Player.update(state.player, dt, walking);
+  Player.update(state.player, dt);
+  if (walking) {
+    state.player.particles.spawnTimer += dt;
+    while (
+      state.player.particles.spawnTimer >
+      1000 / playerParticleSpawnRateWhileWalking
+    ) {
+      state.player.particles.spawnTimer -=
+        1000 / playerParticleSpawnRateWhileWalking;
+      Player.spawnParticle(state.player);
+    }
+  }
 
   for (const lava of state.level.lavaTiles) {
     // see if touching player
