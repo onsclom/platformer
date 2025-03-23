@@ -1,6 +1,6 @@
 import { justPressed, clearInputs } from "../input";
-import { Editor } from "./scenes/editor";
-import { Playing } from "./scenes/playing";
+import { Editor } from "./editor";
+import { Playing } from "./playing";
 
 export type State = ReturnType<typeof create>;
 
@@ -19,7 +19,6 @@ export function update(state: State, dt: number) {
     Object.assign(state, create());
   }
 
-  // toggle between editor and playing
   if (justPressed.has("Enter")) {
     if (state.curScene === "editor") {
       state.curScene = "playing";
@@ -27,6 +26,7 @@ export function update(state: State, dt: number) {
       state.sceneData.playing.player.x = state.sceneData.editor.camera.x;
       state.sceneData.playing.player.y = state.sceneData.editor.camera.y;
       state.sceneData.playing.player.dy = 0;
+      state.sceneData.playing.player.alive = true;
     } else {
       state.curScene = "editor";
       state.sceneData.editor.camera.x = state.sceneData.playing.player.x;

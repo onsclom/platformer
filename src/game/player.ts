@@ -1,4 +1,5 @@
-import { animate } from "../../animate";
+import { animate } from "../animate";
+import { State as CameraState } from "./camera";
 
 export const initJumpBufferTime = 150;
 
@@ -15,6 +16,8 @@ const fadeInTime = 50;
 
 function create() {
   return {
+    alive: true,
+
     x: 0,
     y: 0,
 
@@ -38,11 +41,11 @@ function create() {
   };
 }
 
-function update(state: State, dt: number, wasWalking: boolean) {
+function update(state: State, dt: number, walking: boolean) {
   state.xScale = animate(state.xScale, 1, dt * 0.01);
   state.yScale = animate(state.yScale, 1, dt * 0.01);
 
-  if (wasWalking) {
+  if (walking) {
     state.particles.spawnTimer += dt;
     while (
       state.particles.spawnTimer >
@@ -78,9 +81,7 @@ function spawnParticle(player: State, agitationFactor: number = 1) {
     (player.particles.nextParticle + 1) % maxPlayerParticles;
 }
 
-import { State as CameraState } from "../components/camera";
-
-// can assume this happens inside camera
+// draw happens inside camera
 function draw(
   state: State,
   ctx: CanvasRenderingContext2D,
@@ -88,17 +89,16 @@ function draw(
 ) {
   {
     ctx.save();
-    ctx.fillStyle = "green";
     ctx.translate(state.x, -state.y);
-    const oscillateStrength = Math.abs(camera.angle) * 2;
-    console.log(oscillateStrength);
-    const oscRate = 0.01;
+    const oscillateStrength = Math.abs(camera.angle) * 2.5;
+    const oscRate = 0.02;
     ctx.rotate(
-      camera.angle * 4 +
+      camera.angle * 8 +
         Math.sin(performance.now() * oscRate) * oscillateStrength,
     );
 
     ctx.scale(state.xScale, state.yScale);
+    ctx.fillStyle = state.alive ? "hsl(55, 100%, 85%)" : "gray";
     ctx.fillRect(
       -playerWidth / 2,
       -playerHeight / 2,
@@ -120,7 +120,7 @@ function draw(
       );
 
       const timeAlive = playerParticleLifetime - particle.lifetime;
-      ctx.globalAlpha = timeAlive / fadeInTime;
+      ctx.globalAlpha = (timeAlive / fadeInTime) ** 2;
 
       ctx.beginPath();
       ctx.arc(0, 0, 0.5, 0, Math.PI * 2);

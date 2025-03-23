@@ -1,16 +1,18 @@
-import { animate } from "../../animate";
-import { playSound } from "../../audio";
-import { justPressed, justReleased, keysDown } from "../../input";
-import { Camera } from "../components/camera";
-import { Level } from "../components/level";
-import {
-  initJumpBufferTime,
-  Player,
-  playerHeight,
-  playerWidth,
-} from "../components/player";
+import { animate } from "../animate";
+import { playSound } from "../audio";
+import { justReleased, keysDown } from "../input";
+import { Camera } from "./camera";
+import { Level } from "./level";
+import { Player, playerHeight, playerWidth } from "./player";
 
 type State = ReturnType<typeof create>;
+
+const tileSize = 1;
+const gravity = 40;
+const speed = 8;
+const jumpStrength = 20;
+const coyoteTime = 75;
+const maxFallSpeed = 15;
 
 export function create() {
   return {
@@ -21,14 +23,36 @@ export function create() {
 }
 
 export function update(state: State, dt: number) {
+  Camera.update(state.camera, dt);
+
   {
     // center camera on player
     state.camera.x = state.player.x;
     state.camera.y = state.player.y;
   }
 
-  const wasWalking = moveAndSlidePlayer(state, dt);
-  Player.update(state.player, dt, wasWalking);
+  let walking = false;
+  if (state.player.alive) {
+    walking = moveAndSlidePlayer(state, dt);
+  }
+  Player.update(state.player, dt, walking);
+
+  for (const lava of state.level.lavaTiles) {
+    // see if touching player
+    const leniency = 0.2;
+    const xTouching =
+      Math.abs(state.player.x - lava.x) <
+      playerWidth * 0.5 + tileSize * 0.5 - leniency;
+    const yTouching =
+      Math.abs(state.player.y - lava.y) <
+      playerHeight * 0.5 + tileSize * 0.5 - leniency;
+    if (xTouching && yTouching && state.player.alive) {
+      playSound("death");
+      state.player.alive = false;
+      state.camera.shakeFactor = 1;
+    }
+  }
+
   Level.update(state.level, dt);
 }
 
@@ -42,13 +66,6 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
 }
 
 export const Playing = { create, update, draw };
-
-const tileSize = 1;
-const gravity = 20;
-
-const speed = 5;
-const jumpStrength = 10;
-const coyoteTime = 50;
 
 function moveAndSlidePlayer(state: State, dt: number) {
   if (justReleased.has(" ") || justReleased.has("w")) {
@@ -109,6 +126,9 @@ function moveAndSlidePlayer(state: State, dt: number) {
   }
 
   state.player.dy -= gravity * (dt / 1000);
+  if (state.player.dy < -maxFallSpeed) {
+    state.player.dy = -maxFallSpeed;
+  }
   state.player.y += state.player.dy * (dt / 1000);
   {
     for (const tile of state.level.solidTiles) {

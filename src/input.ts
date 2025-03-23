@@ -32,7 +32,7 @@ document.addEventListener("pointermove", (event) => {
   pointerPos = { x: event.clientX, y: event.clientY };
 });
 
-document.addEventListener("pointerleave", (event) => {
+document.addEventListener("pointerleave", () => {
   pointerPos = null;
 });
 

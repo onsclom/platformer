@@ -9,8 +9,8 @@ TODO: make this an actually good reuseable camera
 export type State = ReturnType<typeof create>;
 function create() {
   return {
-    width: 20,
-    height: 20,
+    width: 25,
+    height: 25,
     x: 0,
     y: 0,
     shakeFactor: 0, // 0 to 1
@@ -85,14 +85,14 @@ function drawWithLetterBoxedCamera(
   // UI SPACE
   //////////////////
   ctx.globalAlpha = 0.5;
-  ctx.strokeStyle = "red";
-  ctx.lineWidth = 0.005 * minSide;
-  ctx.strokeRect(
-    letterBoxed.x,
-    letterBoxed.y,
-    letterBoxed.width,
-    letterBoxed.height,
-  );
+  // ctx.strokeStyle = "red";
+  // ctx.lineWidth = 0.005 * minSide;
+  // ctx.strokeRect(
+  //   letterBoxed.x,
+  //   letterBoxed.y,
+  //   letterBoxed.width,
+  //   letterBoxed.height,
+  // );
   ctx.globalAlpha = 1;
 }
 

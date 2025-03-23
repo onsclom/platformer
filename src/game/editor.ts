@@ -1,14 +1,15 @@
-import { assert } from "../../assert";
+import { assert } from "../assert";
+import { playSound } from "../audio";
 import {
   justPressed,
   keysDown,
   leftClickDown,
   pointerPos,
   rightClickDown,
-} from "../../input";
-import { Camera } from "../components/camera";
-import { Level } from "../components/level";
-import { playerHeight, playerWidth } from "../components/player";
+} from "../input";
+import { Camera } from "./camera";
+import { Level } from "./level";
+import { playerHeight, playerWidth } from "./player";
 
 export const gridSize = 1;
 
@@ -31,6 +32,8 @@ export function update(state: State, dt: number) {
   if (justPressed.has("2")) {
     state.placingType = "lava";
   }
+
+  Camera.update(state.camera, dt);
 
   {
     const canvas = document.querySelector("canvas")!;
@@ -125,6 +128,18 @@ export function update(state: State, dt: number) {
   });
 
   Level.update(state.level, dt);
+
+  if (justPressed.has("l")) {
+    // copy level to clipboard
+    const level = {
+      solidTiles: state.level.solidTiles,
+      lavaTiles: state.level.lavaTiles,
+    };
+    console.log(level);
+    navigator.clipboard.writeText(JSON.stringify(level)).then(() => {
+      playSound("death");
+    });
+  }
 }
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
