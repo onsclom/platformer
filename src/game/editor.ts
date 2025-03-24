@@ -1,4 +1,3 @@
-import { assert } from "../assert";
 import { playSound } from "../audio";
 import {
   justPressed,
@@ -8,36 +7,17 @@ import {
   rightClickDown,
 } from "../input";
 import { Camera } from "./camera";
-import { Level } from "./level";
+import { Level, Tile } from "./level";
 import { playerColor, playerHeight, playerWidth } from "./player";
 
 export const gridSize = 1;
-
-// in progress
-type Tile =
-  | {
-      type: "solid";
-      x: number;
-      y: number;
-    }
-  | {
-      type: "lava";
-      x: number;
-      y: number;
-    }
-  | {
-      type: "cannon";
-      x: number;
-      y: number;
-      dir: "up" | "down" | "left" | "right";
-    };
 
 export function create() {
   const state = {
     level: Level.create(),
     camera: Camera.create(),
     hoveredTile: null as { x: number; y: number } | null,
-    placingType: "solid" as "solid" | "lava",
+    placingType: "solid" as Tile["type"],
   };
   return state;
 }
@@ -75,21 +55,21 @@ export function update(state: State, dt: number) {
     }
   }
 
-  const uniqueSolidTiles = new Set(
-    state.level.solidTiles.map((tile) => `${tile.x},${tile.y}`),
-  );
-  const uniqueLavaTiles = new Set(
-    state.level.lavaTiles.map((tile) => `${tile.x},${tile.y}`),
+  const posToTileMap = new Map(
+    state.level.static.tiles.map((tile) => [`${tile.x},${tile.y}`, tile]),
   );
 
   if (leftClickDown && state.hoveredTile) {
-    // TODO: toggle hovered tile
-    if (state.placingType === "solid") {
-      uniqueLavaTiles.delete(`${state.hoveredTile.x},${state.hoveredTile.y}`);
-      uniqueSolidTiles.add(`${state.hoveredTile.x},${state.hoveredTile.y}`);
-    } else if (state.placingType === "lava") {
-      uniqueSolidTiles.delete(`${state.hoveredTile.x},${state.hoveredTile.y}`);
-      uniqueLavaTiles.add(`${state.hoveredTile.x},${state.hoveredTile.y}`);
+    if (state.placingType === "cannon") {
+      // if exists, rotate
+      // else, create
+    } else {
+      // remaining are simple cases
+      posToTileMap.set(`${state.hoveredTile.x},${state.hoveredTile.y}`, {
+        type: state.placingType,
+        x: state.hoveredTile.x,
+        y: state.hoveredTile.y,
+      });
     }
   }
 
@@ -121,31 +101,17 @@ export function update(state: State, dt: number) {
 
   if (rightClickDown && state.hoveredTile) {
     const tileToRemove = `${state.hoveredTile.x},${state.hoveredTile.y}`;
-    uniqueSolidTiles.delete(tileToRemove);
+    posToTileMap.delete(tileToRemove);
   }
-  state.level.solidTiles = Array.from(uniqueSolidTiles).map((tile) => {
-    const [x, y] = tile.split(",").map(Number);
-    assert(x !== undefined && y !== undefined);
-    return { x, y };
-  });
 
-  if (rightClickDown && state.hoveredTile) {
-    const tileToRemove = `${state.hoveredTile.x},${state.hoveredTile.y}`;
-    uniqueLavaTiles.delete(tileToRemove);
-  }
-  state.level.lavaTiles = Array.from(uniqueLavaTiles).map((tile) => {
-    const [x, y] = tile.split(",").map(Number);
-    assert(x !== undefined && y !== undefined);
-    return { x, y };
-  });
+  state.level.static.tiles = Array.from(posToTileMap.values());
 
   Level.update(state.level, dt);
 
   if (justPressed.has("l")) {
     // copy level to clipboard
     const level = {
-      solidTiles: state.level.solidTiles,
-      lavaTiles: state.level.lavaTiles,
+      static: state.level.static,
     };
     console.log(level);
     navigator.clipboard.writeText(JSON.stringify(level)).then(() => {

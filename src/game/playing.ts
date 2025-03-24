@@ -37,8 +37,11 @@ export function update(state: State, dt: number) {
   }
 
   let walking = false;
+  const solidTiles = state.level.static.tiles.filter(
+    (tile) => tile.type === "solid",
+  );
   if (state.player.alive) {
-    walking = moveAndSlidePlayer(state, dt);
+    walking = moveAndSlidePlayer(state, dt, solidTiles);
   }
   Player.update(state.player, dt);
   if (walking) {
@@ -53,7 +56,8 @@ export function update(state: State, dt: number) {
     }
   }
 
-  for (const lava of state.level.lavaTiles) {
+  const lavas = state.level.static.tiles.filter((tile) => tile.type === "lava");
+  for (const lava of lavas) {
     // see if touching player
     const leniency = 0.2;
     const xTouching =
@@ -83,7 +87,14 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
 
 export const Playing = { create, update, draw };
 
-function moveAndSlidePlayer(state: State, dt: number) {
+function moveAndSlidePlayer(
+  state: State,
+  dt: number,
+  collidableTiles: {
+    x: number;
+    y: number;
+  }[],
+) {
   if (justReleased.has(" ") || justReleased.has("w")) {
     if (state.player.dy > 0) {
       state.player.dy /= 2;
@@ -101,7 +112,7 @@ function moveAndSlidePlayer(state: State, dt: number) {
   state.camera.angle = animate(state.camera.angle, dx * 0.02, dt * 0.02);
   {
     state.player.x += dx * (dt / 1000) * speed;
-    for (const tile of state.level.solidTiles) {
+    for (const tile of collidableTiles) {
       // collision
       const tileTopLeft = {
         x: tile.x - tileSize * 0.5,
@@ -147,7 +158,7 @@ function moveAndSlidePlayer(state: State, dt: number) {
   }
   state.player.y += state.player.dy * (dt / 1000);
   {
-    for (const tile of state.level.solidTiles) {
+    for (const tile of collidableTiles) {
       // collision
       const tileTopLeft = {
         x: tile.x - tileSize * 0.5,

@@ -83,15 +83,14 @@ function draw(
     ctx.restore();
   }
 
-  // draw lava particles
   ctx.fillStyle = "#bbb";
   for (const particle of state.particles.instances) {
     if (particle.lifetime > 0) {
       ctx.save();
       ctx.translate(particle.x, -particle.y);
       ctx.scale(
-        (particle.lifetime * 0.15) / playerParticleLifetime,
-        (particle.lifetime * 0.15) / playerParticleLifetime,
+        (particle.lifetime * 0.2) / playerParticleLifetime,
+        (particle.lifetime * 0.2) / playerParticleLifetime,
       );
 
       const timeAlive = playerParticleLifetime - particle.lifetime;

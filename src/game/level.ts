@@ -8,9 +8,32 @@ const lavaParticleSpawnHz = 20;
 const lavaParticleLifetime = 500;
 const fadeInTime = 100;
 
+export type Tile = {
+  x: number;
+  y: number;
+} & (
+  | {
+      type: "solid";
+    }
+  | {
+      type: "lava";
+    }
+  | {
+      type: "cannon";
+      dir: "up" | "down" | "left" | "right";
+    }
+  | {
+      type: "jumpToken";
+    }
+);
+
 export function create() {
   return {
-    ...defaultLevel,
+    // saved data for a level
+    static: {
+      tiles: [] as Tile[],
+    },
+    // stuff that doesn't need to be saved
     ephemeral: {
       lavaParticles: {
         instances: Array.from({ length: maxLavaParticles }, () => ({
@@ -30,13 +53,14 @@ export function create() {
 export function update(state: State, dt: number) {
   state.ephemeral.lavaParticles.spawnTimer += dt;
 
+  // update lava particles
+  const lavaTiles = state.static.tiles.filter((tile) => tile.type === "lava");
   while (
     state.ephemeral.lavaParticles.spawnTimer >
     1000 / lavaParticleSpawnHz
   ) {
     state.ephemeral.lavaParticles.spawnTimer -= 1000 / lavaParticleSpawnHz;
-
-    for (const tile of state.lavaTiles) {
+    for (const tile of lavaTiles) {
       const particle =
         state.ephemeral.lavaParticles.instances[
           state.ephemeral.lavaParticles.nextParticle
@@ -67,7 +91,7 @@ export function update(state: State, dt: number) {
 export function draw(level: State, ctx: CanvasRenderingContext2D) {
   // draw tile shadows
   ctx.fillStyle = "#aaa";
-  level.solidTiles.forEach((tile) => {
+  level.static.tiles.forEach((tile) => {
     ctx.save();
     ctx.translate(
       tile.x * gridSize - gridSize / 2 + 0.1,
@@ -76,31 +100,26 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
     ctx.fillRect(0, 0, gridSize, gridSize);
     ctx.restore();
   });
-  level.lavaTiles.forEach((tile) => {
-    ctx.save();
-    ctx.translate(tile.x, -tile.y);
-    ctx.fillRect(-gridSize / 2 + 0.1, -gridSize / 2 + 0.1, gridSize, gridSize);
-    ctx.restore();
-  });
 
-  // draw top
-  ctx.fillStyle = "white";
-  level.solidTiles.forEach((tile) => {
-    ctx.save();
-    ctx.translate(
-      tile.x * gridSize - gridSize / 2,
-      -tile.y * gridSize - gridSize / 2,
-    );
-    ctx.fillRect(0, 0, gridSize, gridSize);
-    ctx.restore();
-  });
-  ctx.fillStyle = "red";
-  level.lavaTiles.forEach((tile) => {
-    ctx.save();
-    ctx.translate(tile.x, -tile.y);
-    ctx.fillRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
-    ctx.restore();
-  });
+  for (const tile of level.static.tiles) {
+    if (tile.type === "solid") {
+      ctx.fillStyle = "white";
+      ctx.save();
+      ctx.translate(
+        tile.x * gridSize - gridSize / 2,
+        -tile.y * gridSize - gridSize / 2,
+      );
+      ctx.fillRect(0, 0, gridSize, gridSize);
+      ctx.restore();
+    }
+    if (tile.type === "lava") {
+      ctx.fillStyle = "red";
+      ctx.save();
+      ctx.translate(tile.x, -tile.y);
+      ctx.fillRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
+      ctx.restore();
+    }
+  }
 
   // draw lava particles
   ctx.fillStyle = "orange";
