@@ -1,5 +1,6 @@
 import { playSound } from "../audio";
 import {
+  justLeftClicked,
   justPressed,
   keysDown,
   leftClickDown,
@@ -24,11 +25,17 @@ export function create() {
 type State = ReturnType<typeof create>;
 
 export function update(state: State, dt: number) {
-  if (justPressed.has("1")) {
-    state.placingType = "solid";
-  }
-  if (justPressed.has("2")) {
-    state.placingType = "lava";
+  const hotkeyToPlacingType: Record<string, Tile["type"]> = {
+    "1": "solid",
+    "2": "lava",
+    "3": "cannon",
+    "4": "jumpToken",
+  };
+
+  for (const [hotkey, placingType] of Object.entries(hotkeyToPlacingType)) {
+    if (justPressed.has(hotkey)) {
+      state.placingType = placingType;
+    }
   }
 
   Camera.update(state.camera, dt);
@@ -61,8 +68,28 @@ export function update(state: State, dt: number) {
 
   if (leftClickDown && state.hoveredTile) {
     if (state.placingType === "cannon") {
-      // if exists, rotate
-      // else, create
+      const existingTile = posToTileMap.get(
+        `${state.hoveredTile.x},${state.hoveredTile.y}`,
+      );
+      if (existingTile?.type === "cannon" && justLeftClicked) {
+        const indexToDir = ["up", "right", "down", "left"] as const;
+        const currentIndex = indexToDir.indexOf(existingTile.dir);
+        posToTileMap.set(`${state.hoveredTile.x},${state.hoveredTile.y}`, {
+          type: "cannon",
+          x: state.hoveredTile.x,
+          y: state.hoveredTile.y,
+          dir: indexToDir[(currentIndex + 1) % indexToDir.length]!,
+        });
+      } else {
+        if (existingTile?.type !== "cannon") {
+          posToTileMap.set(`${state.hoveredTile.x},${state.hoveredTile.y}`, {
+            type: state.placingType,
+            x: state.hoveredTile.x,
+            y: state.hoveredTile.y,
+            dir: "up",
+          });
+        }
+      }
     } else {
       // remaining are simple cases
       posToTileMap.set(`${state.hoveredTile.x},${state.hoveredTile.y}`, {

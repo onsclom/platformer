@@ -1,12 +1,14 @@
 import { gridSize } from "./editor";
-import defaultLevel from "./default-level";
 
 type State = ReturnType<typeof create>;
 
 const maxLavaParticles = 1000;
 const lavaParticleSpawnHz = 20;
 const lavaParticleLifetime = 500;
-const fadeInTime = 100;
+const fadeInTime = 20;
+
+const maxCannonBalls = 1000;
+const cannonSpawnHz = 0.5;
 
 export type Tile = {
   x: number;
@@ -46,14 +48,23 @@ export function create() {
         nextParticle: 0,
         spawnTimer: 0,
       },
+      cannonBalls: {
+        instances: Array.from({ length: maxCannonBalls }, () => ({
+          x: 0,
+          y: 0,
+          dx: 0,
+          dy: 0,
+        })),
+        nextBall: 0,
+        spawnTimer: 0,
+      },
     },
   };
 }
 
 export function update(state: State, dt: number) {
-  state.ephemeral.lavaParticles.spawnTimer += dt;
-
   // update lava particles
+  state.ephemeral.lavaParticles.spawnTimer += dt;
   const lavaTiles = state.static.tiles.filter((tile) => tile.type === "lava");
   while (
     state.ephemeral.lavaParticles.spawnTimer >
@@ -77,8 +88,6 @@ export function update(state: State, dt: number) {
         (state.ephemeral.lavaParticles.nextParticle + 1) % maxLavaParticles;
     }
   }
-
-  // update particles
   for (const particle of state.ephemeral.lavaParticles.instances) {
     if (particle.lifetime > 0) {
       particle.lifetime -= dt;
@@ -86,19 +95,65 @@ export function update(state: State, dt: number) {
       particle.y += (particle.dy * dt) / 1000;
     }
   }
+
+  // update cannon balls
+  state.ephemeral.cannonBalls.spawnTimer += dt;
+  while (state.ephemeral.cannonBalls.spawnTimer > 1000 / cannonSpawnHz) {
+    state.ephemeral.cannonBalls.spawnTimer -= 1000 / cannonSpawnHz;
+    for (const tile of state.static.tiles) {
+      if (tile.type === "cannon") {
+        const ball =
+          state.ephemeral.cannonBalls.instances[
+            state.ephemeral.cannonBalls.nextBall
+          ]!;
+        ball.x = tile.x;
+        ball.y = tile.y;
+        ball.dx = 0;
+        ball.dy = 0;
+        const cannonBallSpeed = 8;
+        switch (tile.dir) {
+          case "up":
+            ball.dy = cannonBallSpeed;
+            break;
+          case "down":
+            ball.dy = -cannonBallSpeed;
+            break;
+          case "left":
+            ball.dx = -cannonBallSpeed;
+            break;
+          case "right":
+            ball.dx = cannonBallSpeed;
+            break;
+        }
+        state.ephemeral.cannonBalls.nextBall =
+          (state.ephemeral.cannonBalls.nextBall + 1) % maxCannonBalls;
+      }
+    }
+  }
+  for (const ball of state.ephemeral.cannonBalls.instances) {
+    ball.x += (ball.dx * dt) / 1000;
+    ball.y += (ball.dy * dt) / 1000;
+  }
 }
 
 export function draw(level: State, ctx: CanvasRenderingContext2D) {
   // draw tile shadows
   ctx.fillStyle = "#aaa";
   level.static.tiles.forEach((tile) => {
-    ctx.save();
-    ctx.translate(
-      tile.x * gridSize - gridSize / 2 + 0.1,
-      -tile.y * gridSize - gridSize / 2 + 0.1,
-    );
-    ctx.fillRect(0, 0, gridSize, gridSize);
-    ctx.restore();
+    if (tile.type === "cannon") {
+      ctx.save();
+      ctx.translate(tile.x + 0.1, -tile.y + 0.1);
+      drawCannonShape(ctx, tile.dir);
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.translate(
+        tile.x * gridSize - gridSize / 2 + 0.1,
+        -tile.y * gridSize - gridSize / 2 + 0.1,
+      );
+      ctx.fillRect(0, 0, gridSize, gridSize);
+      ctx.restore();
+    }
   });
 
   for (const tile of level.static.tiles) {
@@ -111,14 +166,32 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       );
       ctx.fillRect(0, 0, gridSize, gridSize);
       ctx.restore();
-    }
-    if (tile.type === "lava") {
+    } else if (tile.type === "lava") {
       ctx.fillStyle = "red";
       ctx.save();
       ctx.translate(tile.x, -tile.y);
       ctx.fillRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
       ctx.restore();
+    } else if (tile.type === "cannon") {
+      ctx.fillStyle = "purple";
+      ctx.save();
+      ctx.translate(tile.x, -tile.y);
+      drawCannonShape(ctx, tile.dir);
+      ctx.restore();
     }
+  }
+
+  // draw cannon balls
+  ctx.fillStyle = "red";
+  for (const ball of level.ephemeral.cannonBalls.instances) {
+    if (ball.dx === 0 && ball.dy === 0) continue; // not active
+    ctx.save();
+    ctx.translate(ball.x, -ball.y);
+    ctx.beginPath();
+    const rad = (gridSize / 2) * 0.9;
+    ctx.arc(0, 0, rad, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   // draw lava particles
@@ -139,6 +212,23 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.restore();
     }
   }
+}
+
+function drawCannonShape(
+  ctx: CanvasRenderingContext2D,
+  dir: "up" | "down" | "left" | "right",
+) {
+  ctx.save();
+  const rad = (gridSize / 2) * 0.9;
+  const rotation = ["up", "right", "down", "left"].indexOf(dir) * (Math.PI / 2);
+  ctx.rotate(rotation);
+  ctx.beginPath();
+  ctx.arc(0, 0, rad, 0, Math.PI * 2);
+  ctx.fill();
+  const tubeSize = 0.5;
+  ctx.translate(0, -0.5 + tubeSize / 2);
+  ctx.fillRect(-tubeSize / 2, -tubeSize / 2, tubeSize, tubeSize);
+  ctx.restore();
 }
 
 export const Level = { create, update, draw };
