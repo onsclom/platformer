@@ -1,5 +1,5 @@
 import defaultLevel from "./default-level";
-import { gridSize } from "./editor";
+import { gridSize } from "./top-level-constants";
 
 type State = ReturnType<typeof create>;
 
@@ -11,32 +11,24 @@ const fadeInTime = 20;
 const maxCannonBalls = 1000;
 const cannonSpawnHz = 0.5;
 
+const cannonBallRadius = (gridSize / 2) * 0.9;
+
 export type Tile = {
   x: number;
   y: number;
 } & (
-  | {
-      type: "solid";
-    }
-  | {
-      type: "lava";
-    }
+  | { type: "solid" }
+  | { type: "lava" }
   | {
       type: "cannon";
       dir: "up" | "down" | "left" | "right";
     }
-  | {
-      type: "jumpToken";
-    }
+  | { type: "jumpToken" }
 );
 
 export function create() {
   return {
-    // saved data for a level
-    // static: {
-    //   tiles: [] as Tile[],
-    // },
-    ...defaultLevel,
+    ...(defaultLevel as { static: { tiles: Tile[] } }),
 
     // stuff that doesn't need to be saved
     ephemeral: {
@@ -136,6 +128,23 @@ export function update(state: State, dt: number) {
   for (const ball of state.ephemeral.cannonBalls.instances) {
     ball.x += (ball.dx * dt) / 1000;
     ball.y += (ball.dy * dt) / 1000;
+
+    // check if colliding with solid tiles
+    const solidTiles = state.static.tiles.filter(
+      (tile) => tile.type === "solid",
+    );
+    for (const tile of solidTiles) {
+      // we can treat cannonballs like a square and get same results
+      const xDist = Math.abs(ball.x - tile.x);
+      const yDist = Math.abs(ball.y - tile.y);
+      if (
+        xDist < gridSize / 2 + cannonBallRadius &&
+        yDist < gridSize / 2 + cannonBallRadius
+      ) {
+        ball.dx = 0;
+        ball.dy = 0;
+      }
+    }
   }
 }
 
@@ -191,8 +200,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
     ctx.save();
     ctx.translate(ball.x, -ball.y);
     ctx.beginPath();
-    const rad = (gridSize / 2) * 0.9;
-    ctx.arc(0, 0, rad, 0, Math.PI * 2);
+    ctx.arc(0, 0, cannonBallRadius, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -222,11 +230,10 @@ function drawCannonShape(
   dir: "up" | "down" | "left" | "right",
 ) {
   ctx.save();
-  const rad = (gridSize / 2) * 0.9;
   const rotation = ["up", "right", "down", "left"].indexOf(dir) * (Math.PI / 2);
   ctx.rotate(rotation);
   ctx.beginPath();
-  ctx.arc(0, 0, rad, 0, Math.PI * 2);
+  ctx.arc(0, 0, cannonBallRadius, 0, Math.PI * 2);
   ctx.fill();
   const tubeSize = 0.5;
   ctx.translate(0, -0.5 + tubeSize / 2);

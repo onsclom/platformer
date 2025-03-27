@@ -10,8 +10,7 @@ import {
 import { Camera } from "./camera";
 import { Level, Tile } from "./level";
 import { playerColor, playerHeight, playerWidth } from "./player";
-
-export const gridSize = 1;
+import { gridSize } from "./top-level-constants";
 
 export function create() {
   const state = {
