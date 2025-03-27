@@ -1,3 +1,4 @@
+import defaultLevel from "./default-level";
 import { gridSize } from "./editor";
 
 type State = ReturnType<typeof create>;
@@ -32,9 +33,11 @@ export type Tile = {
 export function create() {
   return {
     // saved data for a level
-    static: {
-      tiles: [] as Tile[],
-    },
+    // static: {
+    //   tiles: [] as Tile[],
+    // },
+    ...defaultLevel,
+
     // stuff that doesn't need to be saved
     ephemeral: {
       lavaParticles: {

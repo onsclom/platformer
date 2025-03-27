@@ -59,3 +59,8 @@ game plan:
 - make multiplayer
   - share ghost level runs
   - run levels together
+
+---
+
+use nice color palettes...
+think n++
