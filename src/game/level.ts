@@ -188,7 +188,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.fillRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
       ctx.restore();
     } else if (tile.type === "cannon") {
-      ctx.fillStyle = "purple";
+      ctx.fillStyle = "#fee";
       ctx.save();
       ctx.translate(tile.x, -tile.y);
       drawCannonShape(ctx, tile.dir);

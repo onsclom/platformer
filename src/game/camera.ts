@@ -73,7 +73,7 @@ function drawWithLetterBoxedCamera(
 
     // rotate from center
     ctx.translate(camera.x, -camera.y);
-    ctx.rotate(camera.angle);
+    // ctx.rotate(camera.angle);
     ctx.translate(-camera.x, camera.y);
 
     // GAME DRAW HERE

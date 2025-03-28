@@ -67,6 +67,12 @@ function draw(
     ctx.translate(state.x, -state.y);
     const oscillateStrength = Math.abs(camera.angle) * 2.5;
     const oscRate = 0.02;
+    if (state.timeSinceGrounded === 0) {
+      ctx.translate(
+        0,
+        oscillateStrength * -Math.abs(Math.sin(performance.now() * 0.015) * 3),
+      );
+    }
     ctx.rotate(
       camera.angle * 8 +
         Math.sin(performance.now() * oscRate) * oscillateStrength,
