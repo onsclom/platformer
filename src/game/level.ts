@@ -11,7 +11,7 @@ const fadeInTime = 20;
 const maxCannonBalls = 1000;
 const cannonSpawnHz = 0.5;
 
-const cannonBallRadius = (gridSize / 2) * 0.9;
+export const cannonBallRadius = (gridSize / 2) * 0.9;
 
 export type Tile = {
   x: number;
@@ -125,7 +125,10 @@ export function update(state: State, dt: number) {
       }
     }
   }
+
   for (const ball of state.ephemeral.cannonBalls.instances) {
+    if (ball.dx === 0 && ball.dy === 0) continue; // not active
+
     ball.x += (ball.dx * dt) / 1000;
     ball.y += (ball.dy * dt) / 1000;
 

@@ -2,7 +2,7 @@ import { animate } from "../animate";
 import { playSound } from "../audio";
 import { justReleased, keysDown } from "../input";
 import { Camera } from "./camera";
-import { Level } from "./level";
+import { cannonBallRadius, Level } from "./level";
 import {
   Player,
   playerHeight,
@@ -66,21 +66,41 @@ export function update(state: State, dt: number) {
     const yTouching =
       Math.abs(state.player.y - lava.y) <
       playerHeight * 0.5 + tileSize * 0.5 - leniency;
-    if (xTouching && yTouching && state.player.alive) {
-      playSound("death");
-      state.player.alive = false;
-      state.camera.shakeFactor = 1;
+    if (xTouching && yTouching) {
+      killPlayer(state);
     }
   }
 
   Level.update(state.level, dt);
+
+  // check if cannon ball colliding with player
+  for (const ball of state.level.ephemeral.cannonBalls.instances) {
+    if (ball.dx === 0 && ball.dy === 0) continue; // inactive cannonball
+    // TODO: generalize this
+    // its circle to square collision algo with lots of assumptions:
+    const angleToPlayer = Math.atan2(
+      state.player.y - ball.y,
+      state.player.x - ball.x,
+    );
+    const point = {
+      x: ball.x + Math.cos(angleToPlayer) * cannonBallRadius,
+      y: ball.y + Math.sin(angleToPlayer) * cannonBallRadius,
+    };
+    // see if point is within player
+    const diff = {
+      x: Math.abs(point.x - state.player.x),
+      y: Math.abs(point.y - state.player.y),
+    };
+    if (diff.x <= playerWidth / 2 && diff.y <= playerHeight / 2) {
+      killPlayer(state);
+    }
+  }
 }
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
   Camera.drawWithLetterBoxedCamera(state.camera, ctx, () => {
     // draw solid tiles
     Level.draw(state.level, ctx);
-
     Player.draw(state.player, ctx, state.camera);
   });
 }
@@ -226,4 +246,12 @@ function moveAndSlidePlayer(
   }
 
   return Math.abs(dx) > 0 && state.player.timeSinceGrounded === 0;
+}
+
+function killPlayer(state: State) {
+  if (state.player.alive) {
+    playSound("death");
+    state.player.alive = false;
+    state.camera.shakeFactor = 1;
+  }
 }
