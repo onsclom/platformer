@@ -90,6 +90,7 @@ export function update(state: State, dt: number) {
 
     if (colliding) {
       killPlayer(state);
+      // Level.spawnExplosion(state.level, ball.x, ball.y);
     }
   }
 }
