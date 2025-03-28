@@ -31,6 +31,10 @@ export function update(state: State, dt: number) {
       state.curScene = "editor";
       state.sceneData.editor.camera.x = state.sceneData.playing.player.x;
       state.sceneData.editor.camera.y = state.sceneData.playing.player.y;
+      state.sceneData.editor.camera.width =
+        state.sceneData.playing.camera.width;
+      state.sceneData.editor.camera.height =
+        state.sceneData.playing.camera.height;
     }
   }
 
