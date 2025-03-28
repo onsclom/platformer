@@ -15,8 +15,10 @@ const explosionParticleLifetime = 1000;
 const maxCannonBalls = 1000;
 const cannonSpawnHz = 0.5;
 
-const jumpTokenRadius = 0.2;
+export const jumpTokenRadius = 0.2;
 export const cannonBallRadius = (gridSize / 2) * 0.9;
+
+export const timeToRespawnJumpToken = 1000;
 
 export type Tile = {
   x: number;
@@ -67,6 +69,7 @@ export function create() {
         nextBall: 0,
         spawnTimer: 0,
       },
+      grabbedJumpTokens: new Map<string, { grabTime: number }>(),
     },
   };
 }
@@ -153,13 +156,11 @@ export function update(state: State, dt: number) {
       playSound("shoot");
     }
   }
-
+  let shouldPlayExplodeSound = false;
   for (const ball of state.ephemeral.cannonBalls.instances) {
     if (ball.dx === 0 && ball.dy === 0) continue; // not active
-
     ball.x += (ball.dx * dt) / 1000;
     ball.y += (ball.dy * dt) / 1000;
-
     // check if colliding with solid tiles
     const solidTiles = state.static.tiles.filter(
       (tile) => tile.type === "solid",
@@ -175,8 +176,19 @@ export function update(state: State, dt: number) {
         spawnCannonBallExplosion(state, ball.x, ball.y);
         ball.dx = 0;
         ball.dy = 0;
-        playSound("cannonball-explosion");
+        shouldPlayExplodeSound = true;
       }
+    }
+  }
+  if (shouldPlayExplodeSound) {
+    playSound("cannonball-explosion");
+  }
+
+  // respawn jump tokens
+  const now = performance.now();
+  for (const [key, token] of state.ephemeral.grabbedJumpTokens.entries()) {
+    if (now - token.grabTime > timeToRespawnJumpToken) {
+      state.ephemeral.grabbedJumpTokens.delete(key);
     }
   }
 }
@@ -191,12 +203,6 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       drawCannonShape(level, ctx, tile.dir);
       ctx.restore();
     } else if (tile.type === "jumpToken") {
-      ctx.save();
-      ctx.translate(tile.x + 0.1, -tile.y + 0.1);
-      ctx.beginPath();
-      ctx.arc(0, 0, jumpTokenRadius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
     } else {
       ctx.save();
       ctx.translate(
@@ -241,8 +247,16 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.fill();
       ctx.restore();
     } else if (tile.type === "jumpToken") {
-      ctx.fillStyle = "yellow";
+      // make sure it's not captured
+      const tokenExists = !level.ephemeral.grabbedJumpTokens.get(
+        `${tile.x},${tile.y}`,
+      );
+
       ctx.save();
+      if (!tokenExists) {
+        ctx.globalAlpha = 0.5;
+      }
+      ctx.fillStyle = "yellow";
       ctx.translate(tile.x, -tile.y);
       ctx.beginPath();
       ctx.arc(0, 0, jumpTokenRadius, 0, Math.PI * 2);

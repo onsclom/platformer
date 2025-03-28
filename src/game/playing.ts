@@ -1,9 +1,9 @@
 import { animate } from "../animate";
 import { playSound } from "../audio";
-import { justReleased, keysDown } from "../input";
+import { justPressed, justReleased, keysDown } from "../input";
 import { Camera } from "./camera";
 import { circleVsRect } from "./collision";
-import { cannonBallRadius, Level } from "./level";
+import { cannonBallRadius, jumpTokenRadius, Level } from "./level";
 import {
   Player,
   playerHeight,
@@ -91,6 +91,44 @@ export function update(state: State, dt: number) {
     if (colliding) {
       killPlayer(state);
       // Level.spawnExplosion(state.level, ball.x, ball.y);
+    }
+  }
+
+  // check if jump token colliding with player
+  const jumpTokens = state.level.static.tiles.filter(
+    (tile) => tile.type === "jumpToken",
+  );
+  for (const jumpToken of jumpTokens) {
+    if (
+      !state.level.ephemeral.grabbedJumpTokens.get(
+        `${jumpToken.x},${jumpToken.y}`,
+      )
+    ) {
+      const colliding = circleVsRect(
+        {
+          cx: jumpToken.x,
+          cy: jumpToken.y,
+          radius: jumpTokenRadius,
+        },
+        {
+          cx: state.player.x,
+          cy: state.player.y,
+          width: playerWidth,
+          height: playerHeight,
+        },
+      );
+      if (
+        colliding &&
+        !state.player.hasExtraJump &&
+        state.player.timeSinceGrounded > 0
+      ) {
+        state.level.ephemeral.grabbedJumpTokens.set(
+          `${jumpToken.x},${jumpToken.y}`,
+          { grabTime: performance.now() },
+        );
+        playSound("jump-token");
+        state.player.hasExtraJump = true;
+      }
     }
   }
 }
@@ -217,6 +255,7 @@ function moveAndSlidePlayer(
           state.player.y = tileTopLeft.y + playerHeight * 0.5;
           state.player.dy = 0;
           state.player.timeSinceGrounded = 0;
+          state.player.hasExtraJump = false;
         } else {
           state.player.y = tileBottomRight.y - playerHeight * 0.5;
           state.player.dy = 0;
@@ -225,13 +264,14 @@ function moveAndSlidePlayer(
     }
   }
 
-  // allow jumping when grounded
   if (
-    (keysDown.has(" ") || keysDown.has("w")) &&
-    state.player.timeSinceGrounded < coyoteTime
+    (justPressed.has(" ") || justPressed.has("w")) &&
+    (state.player.timeSinceGrounded < coyoteTime || state.player.hasExtraJump)
   ) {
     state.player.dy = jumpStrength;
     state.player.timeSinceGrounded = coyoteTime;
+    state.player.hasExtraJump = false;
+
     playSound("jump");
     const jumpStretch = 0.25;
     state.player.xScale = 1 - jumpStretch;

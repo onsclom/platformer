@@ -3,6 +3,7 @@ import jumpSound from "./sounds/jump.wav";
 import landSound from "./sounds/land.wav";
 import shootSound from "./sounds/shoot.wav";
 import cannonballExplosion from "./sounds/cannonball-explosion.wav";
+import jumpToken from "./sounds/jump-token.wav";
 
 const audio = {
   death: { source: deathSound, volume: 1 },
@@ -10,6 +11,7 @@ const audio = {
   land: { source: landSound, volume: 1 },
   shoot: { source: shootSound, volume: 1 },
   "cannonball-explosion": { source: cannonballExplosion, volume: 0.3 },
+  "jump-token": { source: jumpToken, volume: 1 },
 };
 
 const audioCtx = new AudioContext();

@@ -27,6 +27,7 @@ function create() {
 
     dy: 0,
     timeSinceGrounded: 0,
+    hasExtraJump: false,
 
     particles: {
       instances: Array.from({ length: maxPlayerParticles }, () => ({
