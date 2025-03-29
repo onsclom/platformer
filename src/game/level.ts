@@ -276,7 +276,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       const isOn = shouldBeOnBasedOnTime && wasOnLastFrame;
       ctx.save();
       if (!isOn) ctx.globalAlpha = 0.5;
-      ctx.fillStyle = "black";
+      ctx.fillStyle = "purple";
       ctx.translate(
         tile.x * gridSize - gridSize / 2,
         -tile.y * gridSize - gridSize / 2,

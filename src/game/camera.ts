@@ -32,7 +32,8 @@ function drawWithLetterBoxedCamera(
   draw: (ctx: CanvasRenderingContext2D) => void,
 ) {
   const canvasRect = ctx.canvas.getBoundingClientRect();
-  ctx.fillStyle = "#8af";
+
+  ctx.fillStyle = "#aaf";
   ctx.fillRect(0, 0, canvasRect.width, canvasRect.height);
 
   const aspectRatio = 1;
@@ -53,8 +54,6 @@ function drawWithLetterBoxedCamera(
   // ctx.rect(0, 0, minSide, minSide);
   // ctx.clip();
 
-  // light blue background
-  ctx.fillStyle = "#8af";
   ctx.fillRect(0, 0, minSide, minSide);
   {
     // camera space
