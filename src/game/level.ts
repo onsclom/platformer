@@ -276,7 +276,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       const isOn = shouldBeOnBasedOnTime && wasOnLastFrame;
       ctx.save();
       if (!isOn) ctx.globalAlpha = 0.5;
-      ctx.fillStyle = "green";
+      ctx.fillStyle = "black";
       ctx.translate(
         tile.x * gridSize - gridSize / 2,
         -tile.y * gridSize - gridSize / 2,
@@ -381,4 +381,4 @@ function spawnCannonBallExplosion(level: State, x: number, y: number) {
   }
 }
 
-export const Level = { create, update, draw };
+export const Level = { create, update, draw, spawnCannonBallExplosion };

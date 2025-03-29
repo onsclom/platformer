@@ -17,9 +17,10 @@ export function create() {
 export function update(state: State, dt: number) {
   if (justPressed.has("r")) {
     Object.assign(state, create());
+    state.curScene = "playing";
   }
 
-  if (justPressed.has("Enter")) {
+  if (justPressed.has("Enter") || justPressed.has("e")) {
     if (state.curScene === "editor") {
       state.curScene = "playing";
       state.sceneData.playing.level = state.sceneData.editor.level;

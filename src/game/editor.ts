@@ -211,12 +211,7 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   ctx.font = `${canvasRect.width * 0.025}px Arial`;
-  ctx.fillText("editing", canvasRect.width / 2, 0);
-
-  ctx.textAlign = "center";
-  ctx.textBaseline = "bottom";
-  ctx.font = `${canvasRect.width * 0.025}px Arial`;
-  ctx.fillText(state.placingType, canvasRect.width / 2, canvasRect.height);
+  ctx.fillText(`${state.placingType}`, canvasRect.width / 2, 0);
 }
 
 export const Editor = { create, update, draw };

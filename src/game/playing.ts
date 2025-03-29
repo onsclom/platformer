@@ -1,6 +1,6 @@
 import { animate } from "../animate";
 import { playSound } from "../audio";
-import { justPressed, justReleased, keysDown } from "../input";
+import { justPressed, keysDown } from "../input";
 import { Camera } from "./camera";
 import { circleVsRect } from "./collision";
 import {
@@ -24,7 +24,7 @@ const gravity = 40;
 const speed = 8;
 const jumpStrength = 20;
 const coyoteTime = 75;
-const maxFallSpeed = 15;
+const maxFallSpeed = 20;
 
 export function create() {
   return {
@@ -112,7 +112,9 @@ export function update(state: State, dt: number) {
 
     if (colliding) {
       killPlayer(state);
-      // Level.spawnExplosion(state.level, ball.x, ball.y);
+      Level.spawnCannonBallExplosion(state.level, ball.x, ball.y);
+      ball.dx = 0;
+      ball.dy = 0;
     }
   }
 
