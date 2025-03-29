@@ -6,7 +6,7 @@ export type State = ReturnType<typeof create>;
 
 export function create() {
   return {
-    curScene: "editor" as "editor" | "playing",
+    curScene: "playing" as "editor" | "playing",
     sceneData: {
       editor: Editor.create(),
       playing: Playing.create(),
