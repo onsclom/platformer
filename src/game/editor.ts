@@ -10,6 +10,7 @@ import {
 import { Camera } from "./camera";
 import { Level, Tile } from "./level";
 import { playerColor, playerHeight, playerWidth } from "./player";
+import { updateIntervalBlocksOnLastFrame } from "./playing";
 import { gridSize } from "./top-level-constants";
 
 export function create() {
@@ -29,6 +30,7 @@ export function update(state: State, dt: number) {
     "2": "lava",
     "3": "cannon",
     "4": "jumpToken",
+    "5": "intervalBlock",
   };
 
   for (const [hotkey, placingType] of Object.entries(hotkeyToPlacingType)) {
@@ -66,10 +68,10 @@ export function update(state: State, dt: number) {
   );
 
   if (leftClickDown && state.hoveredTile) {
+    const existingTile = posToTileMap.get(
+      `${state.hoveredTile.x},${state.hoveredTile.y}`,
+    );
     if (state.placingType === "cannon") {
-      const existingTile = posToTileMap.get(
-        `${state.hoveredTile.x},${state.hoveredTile.y}`,
-      );
       if (existingTile?.type === "cannon" && justLeftClicked) {
         const indexToDir = ["up", "right", "down", "left"] as const;
         const currentIndex = indexToDir.indexOf(existingTile.dir);
@@ -88,6 +90,22 @@ export function update(state: State, dt: number) {
             dir: "up",
           });
         }
+      }
+    } else if (state.placingType === "intervalBlock") {
+      if (existingTile?.type === "intervalBlock" && justLeftClicked) {
+        posToTileMap.set(`${state.hoveredTile.x},${state.hoveredTile.y}`, {
+          type: state.placingType,
+          x: state.hoveredTile.x,
+          y: state.hoveredTile.y,
+          start: existingTile.start === "on" ? "off" : "on",
+        });
+      } else if (existingTile?.type !== "intervalBlock") {
+        posToTileMap.set(`${state.hoveredTile.x},${state.hoveredTile.y}`, {
+          type: state.placingType,
+          x: state.hoveredTile.x,
+          y: state.hoveredTile.y,
+          start: "on",
+        });
       }
     } else {
       // remaining are simple cases
@@ -133,6 +151,8 @@ export function update(state: State, dt: number) {
   state.level.static.tiles = Array.from(posToTileMap.values());
 
   Level.update(state.level, dt);
+
+  updateIntervalBlocksOnLastFrame(state.level);
 
   if (justPressed.has("l")) {
     // copy level to clipboard

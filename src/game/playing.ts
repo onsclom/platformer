@@ -3,7 +3,12 @@ import { playSound } from "../audio";
 import { justPressed, justReleased, keysDown } from "../input";
 import { Camera } from "./camera";
 import { circleVsRect } from "./collision";
-import { cannonBallRadius, jumpTokenRadius, Level } from "./level";
+import {
+  cannonBallRadius,
+  jumpTokenRadius,
+  Level,
+  timeSpentOnPhase,
+} from "./level";
 import {
   Player,
   playerHeight,
@@ -38,12 +43,28 @@ export function update(state: State, dt: number) {
   }
 
   let walking = false;
-  const solidTiles = state.level.static.tiles.filter(
-    (tile) => tile.type === "solid",
-  );
+  const solidTiles = state.level.static.tiles.filter((tile) => {
+    if (tile.type === "solid") return true;
+    if (tile.type === "intervalBlock") {
+      const shouldBeOnBasedOnTime =
+        Boolean(Math.floor(performance.now() / timeSpentOnPhase) % 2) ===
+        (tile.start === "on");
+      return (
+        shouldBeOnBasedOnTime &&
+        state.level.ephemeral.intervalBlocksOnLastTick.has(
+          `${tile.x},${tile.y}`,
+        )
+      );
+    }
+    return false;
+  });
+
   if (state.player.alive) {
     walking = moveAndSlidePlayer(state, dt, solidTiles);
   }
+
+  updateIntervalBlocksOnLastFrame(state.level, state.player);
+
   Player.update(state.player, dt);
   if (walking) {
     state.player.particles.spawnTimer += dt;
@@ -143,6 +164,37 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
 
 export const Playing = { create, update, draw };
 
+export function updateIntervalBlocksOnLastFrame(
+  level: State["level"],
+  player?: State["player"],
+) {
+  // update interval blocks on last frame
+  const intervalTiles = level.static.tiles.filter(
+    (tile) => tile.type === "intervalBlock",
+  );
+  for (const tile of intervalTiles) {
+    const shouldBeOnBasedOnTime =
+      Boolean(Math.floor(performance.now() / timeSpentOnPhase) % 2) ===
+      (tile.start === "on");
+    if (shouldBeOnBasedOnTime) {
+      if (!player) {
+        level.ephemeral.intervalBlocksOnLastTick.add(`${tile.x},${tile.y}`);
+        continue;
+      }
+      const touchingPlayerX =
+        Math.abs(player.x - tile.x) < playerWidth * 0.5 + tileSize * 0.5;
+      const touchingPlayerY =
+        Math.abs(player.y - tile.y) < playerHeight * 0.5 + tileSize * 0.5;
+      const touching = touchingPlayerX && touchingPlayerY;
+      if (!touching) {
+        level.ephemeral.intervalBlocksOnLastTick.add(`${tile.x},${tile.y}`);
+      }
+    } else {
+      level.ephemeral.intervalBlocksOnLastTick.delete(`${tile.x},${tile.y}`);
+    }
+  }
+}
+
 function moveAndSlidePlayer(
   state: State,
   dt: number,
@@ -151,7 +203,8 @@ function moveAndSlidePlayer(
     y: number;
   }[],
 ) {
-  if (justReleased.has(" ") || justReleased.has("w")) {
+  if (!keysDown.has(" ") && !keysDown.has("w") && state.player.canHalveJump) {
+    state.player.canHalveJump = false;
     if (state.player.dy > 0) {
       state.player.dy /= 2;
     }
@@ -256,6 +309,7 @@ function moveAndSlidePlayer(
           state.player.dy = 0;
           state.player.timeSinceGrounded = 0;
           state.player.hasExtraJump = false;
+          state.player.canHalveJump = false;
         } else {
           state.player.y = tileBottomRight.y - playerHeight * 0.5;
           state.player.dy = 0;
@@ -271,6 +325,7 @@ function moveAndSlidePlayer(
     state.player.dy = jumpStrength;
     state.player.timeSinceGrounded = coyoteTime;
     state.player.hasExtraJump = false;
+    state.player.canHalveJump = true;
 
     playSound("jump");
     const jumpStretch = 0.25;

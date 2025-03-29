@@ -20,6 +20,8 @@ export const cannonBallRadius = (gridSize / 2) * 0.9;
 
 export const timeToRespawnJumpToken = 1000;
 
+export const timeSpentOnPhase = 1000;
+
 export type Tile = {
   x: number;
   y: number;
@@ -31,6 +33,7 @@ export type Tile = {
       dir: "up" | "down" | "left" | "right";
     }
   | { type: "jumpToken" }
+  | { type: "intervalBlock"; start: "on" | "off" }
 );
 
 export function create() {
@@ -70,6 +73,7 @@ export function create() {
         spawnTimer: 0,
       },
       grabbedJumpTokens: new Map<string, { grabTime: number }>(),
+      intervalBlocksOnLastTick: new Set<string>(),
     },
   };
 }
@@ -203,7 +207,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       drawCannonShape(level, ctx, tile.dir);
       ctx.restore();
     } else if (tile.type === "jumpToken") {
-    } else {
+    } else if (tile.type === "solid" || tile.type === "lava") {
       ctx.save();
       ctx.translate(
         tile.x * gridSize - gridSize / 2 + 0.1,
@@ -261,6 +265,23 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.beginPath();
       ctx.arc(0, 0, jumpTokenRadius, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
+    } else if (tile.type === "intervalBlock") {
+      const shouldBeOnBasedOnTime =
+        Boolean(Math.floor(performance.now() / timeSpentOnPhase) % 2) ===
+        (tile.start === "on");
+      const wasOnLastFrame = level.ephemeral.intervalBlocksOnLastTick.has(
+        `${tile.x},${tile.y}`,
+      );
+      const isOn = shouldBeOnBasedOnTime && wasOnLastFrame;
+      ctx.save();
+      if (!isOn) ctx.globalAlpha = 0.5;
+      ctx.fillStyle = "green";
+      ctx.translate(
+        tile.x * gridSize - gridSize / 2,
+        -tile.y * gridSize - gridSize / 2,
+      );
+      ctx.fillRect(0, 0, gridSize, gridSize);
       ctx.restore();
     }
   }

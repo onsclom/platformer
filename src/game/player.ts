@@ -2,7 +2,7 @@ import { animate } from "../animate";
 import { State as CameraState } from "./camera";
 
 export const playerColor = "hsl(55, 100%, 85%)";
-export const initJumpBufferTime = 150;
+export const initJumpBufferTime = 1000;
 
 type State = ReturnType<typeof create>;
 
@@ -27,7 +27,9 @@ function create() {
 
     dy: 0,
     timeSinceGrounded: 0,
+    timeSinceJumpBuffered: initJumpBufferTime,
     hasExtraJump: false,
+    canHalveJump: false,
 
     particles: {
       instances: Array.from({ length: maxPlayerParticles }, () => ({
