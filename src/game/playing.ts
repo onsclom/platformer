@@ -10,6 +10,7 @@ import {
   timeSpentOnPhase,
 } from "./level";
 import {
+  jumpBufferTime,
   Player,
   playerHeight,
   playerParticleSpawnRateWhileWalking,
@@ -318,14 +319,20 @@ function moveAndSlidePlayer(
     }
   }
 
+  state.player.timeSinceJumpBuffered += dt;
+  if (justPressed.has(" ") || justPressed.has("w")) {
+    state.player.timeSinceJumpBuffered = 0;
+  }
+
   if (
-    (justPressed.has(" ") || justPressed.has("w")) &&
+    state.player.timeSinceJumpBuffered < jumpBufferTime &&
     (state.player.timeSinceGrounded < coyoteTime || state.player.hasExtraJump)
   ) {
     state.player.dy = jumpStrength;
     state.player.timeSinceGrounded = coyoteTime;
     state.player.hasExtraJump = false;
     state.player.canHalveJump = true;
+    state.player.timeSinceJumpBuffered = jumpBufferTime;
 
     playSound("jump");
     const jumpStretch = 0.25;
