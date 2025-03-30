@@ -2,6 +2,9 @@ import { update, draw, create } from "./game";
 import { assert } from "./assert";
 import { clearInputs } from "./input";
 
+import { client } from "./server";
+console.log(await client.index.get());
+
 let canvas = document.querySelector("canvas");
 
 let previousTime = performance.now();

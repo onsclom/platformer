@@ -9,8 +9,12 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/bun": "^1.2.8",
+    "elysia": "^1.2.25",
     "typescript": "~5.7.2",
     "vite": "^6.2.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@elysiajs/eden": "^1.2.0"
+  }
 }
