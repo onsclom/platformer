@@ -7,6 +7,7 @@ import {
   pointerPos,
   rightClickDown,
 } from "../input";
+import { client } from "../server";
 import { Camera } from "./camera";
 import { Level, Tile } from "./level";
 import { playerColor, playerHeight, playerWidth } from "./player";
@@ -163,6 +164,16 @@ export function update(state: State, dt: number) {
     navigator.clipboard.writeText(JSON.stringify(level)).then(() => {
       playSound("death");
     });
+  }
+
+  // upload level to server!
+  if (justPressed.has("u")) {
+    client.level.create
+      .post(JSON.stringify({ static: state.level.static }))
+      .then((uuid) => {
+        console.log(uuid);
+        playSound("death");
+      });
   }
 }
 

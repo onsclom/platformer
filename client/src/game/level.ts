@@ -1,5 +1,5 @@
 import { playSound } from "../audio";
-import defaultLevel from "./default-level";
+import defaultLevel from "./saved-levels/default";
 import { gridSize } from "./top-level-constants";
 
 type State = ReturnType<typeof create>;
@@ -36,45 +36,51 @@ export type Tile = {
   | { type: "intervalBlock"; start: "on" | "off" }
 );
 
-export function create() {
+function createEphemeral() {
   return {
-    ...(defaultLevel as { static: { tiles: Tile[] } }),
-    // stuff that doesn't need to be saved
-    ephemeral: {
-      lavaParticles: {
-        instances: Array.from({ length: maxLavaParticles }, () => ({
-          lifetime: 0,
-          x: 0,
-          y: 0,
-          dx: 0,
-          dy: 0,
-        })),
-        nextParticle: 0,
-        spawnTimer: 0,
-      },
-      explosionParticles: {
-        instances: Array.from({ length: maxExplosionParticles }, () => ({
-          lifetime: 0,
-          x: 0,
-          y: 0,
-          dx: 0,
-          dy: 0,
-        })),
-        nextParticle: 0,
-      },
-      cannonBalls: {
-        instances: Array.from({ length: maxCannonBalls }, () => ({
-          x: 0,
-          y: 0,
-          dx: 0,
-          dy: 0,
-        })),
-        nextBall: 0,
-        spawnTimer: 0,
-      },
-      grabbedJumpTokens: new Map<string, { grabTime: number }>(),
-      intervalBlocksOnLastTick: new Set<string>(),
+    lavaParticles: {
+      instances: Array.from({ length: maxLavaParticles }, () => ({
+        lifetime: 0,
+        x: 0,
+        y: 0,
+        dx: 0,
+        dy: 0,
+      })),
+      nextParticle: 0,
+      spawnTimer: 0,
     },
+    explosionParticles: {
+      instances: Array.from({ length: maxExplosionParticles }, () => ({
+        lifetime: 0,
+        x: 0,
+        y: 0,
+        dx: 0,
+        dy: 0,
+      })),
+      nextParticle: 0,
+    },
+    cannonBalls: {
+      instances: Array.from({ length: maxCannonBalls }, () => ({
+        x: 0,
+        y: 0,
+        dx: 0,
+        dy: 0,
+      })),
+      nextBall: 0,
+      spawnTimer: 0,
+    },
+    grabbedJumpTokens: new Map<string, { grabTime: number }>(),
+    intervalBlocksOnLastTick: new Set<string>(),
+  };
+}
+
+function create() {
+  return {
+    // static: { tiles: [] as Tile[] },
+    static: defaultLevel.static as { tiles: Tile[] },
+
+    // stuff that doesn't need to be saved
+    ephemeral: createEphemeral(),
   };
 }
 
@@ -381,4 +387,10 @@ function spawnCannonBallExplosion(level: State, x: number, y: number) {
   }
 }
 
-export const Level = { create, update, draw, spawnCannonBallExplosion };
+export const Level = {
+  create,
+  update,
+  draw,
+  spawnCannonBallExplosion,
+  createEphemeral,
+};

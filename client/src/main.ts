@@ -1,13 +1,6 @@
 import { update, draw, create } from "./game";
 import { assert } from "./assert";
 import { clearInputs } from "./input";
-import { client } from "./server";
-
-try {
-  console.log(await client.index.get());
-} catch (e) {
-  console.error(e);
-}
 
 let canvas = document.querySelector("canvas");
 
