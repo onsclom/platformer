@@ -17,9 +17,11 @@ const app = new Elysia()
   .post(
     "/level/create",
     ({ body }) => {
+      // TODO: verify it's a valid level
+
       // create a new level
       const uuid = randomUUIDv7();
-      fs.writeFile(`persistent/${uuid}`, body);
+      fs.writeFile(`${PERSISTENT_DIR}/${uuid}`, body);
       return uuid;
     },
     { body: t.String() },
