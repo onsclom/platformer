@@ -9,7 +9,7 @@ import {
 } from "../input";
 import { client } from "../server";
 import { Camera } from "./camera";
-import { Level, Tile } from "./level";
+import { drawTile, Level, Tile } from "./level";
 import { playerColor, playerHeight, playerWidth } from "./player";
 import { updateIntervalBlocksOnLastFrame } from "./playing";
 import { gridSize } from "./top-level-constants";
@@ -25,15 +25,15 @@ export function create() {
 }
 type State = ReturnType<typeof create>;
 
-export function update(state: State, dt: number) {
-  const hotkeyToPlacingType: Record<string, Tile["type"]> = {
-    "1": "solid",
-    "2": "lava",
-    "3": "cannon",
-    "4": "jumpToken",
-    "5": "intervalBlock",
-  };
+const hotkeyToPlacingType: Record<string, Tile["type"]> = {
+  "1": "solid",
+  "2": "lava",
+  "3": "cannon",
+  "4": "jumpToken",
+  "5": "intervalBlock",
+};
 
+export function update(state: State, dt: number) {
   for (const [hotkey, placingType] of Object.entries(hotkeyToPlacingType)) {
     if (justPressed.has(hotkey)) {
       state.placingType = placingType;
@@ -223,6 +223,45 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
   ctx.textBaseline = "top";
   ctx.font = `${canvasRect.width * 0.025}px Arial`;
   ctx.fillText(`${state.placingType}`, canvasRect.width / 2, 0);
+
+  const itemSquareSize = 50;
+
+  const itemAmount = Object.keys(hotkeyToPlacingType).length;
+
+  const toolbarRect = {
+    left: canvasRect.width / 2 - (itemSquareSize * itemAmount) / 2,
+    top: canvasRect.height - itemSquareSize,
+    width: itemSquareSize * itemAmount,
+    height: itemSquareSize,
+  };
+
+  ctx.fillStyle = "black";
+  ctx.fillRect(
+    toolbarRect.left,
+    toolbarRect.top,
+    toolbarRect.width,
+    toolbarRect.height,
+  );
+
+  for (let i = 0; i < itemAmount; i++) {
+    const placingType = hotkeyToPlacingType[`${i + 1}`]!;
+    ctx.strokeStyle = "white";
+    ctx.strokeRect(
+      toolbarRect.left + i * itemSquareSize,
+      toolbarRect.top,
+      itemSquareSize,
+      itemSquareSize,
+    );
+
+    const cx = toolbarRect.left + i * itemSquareSize + itemSquareSize / 2;
+    const cy = toolbarRect.top + itemSquareSize / 2;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, itemSquareSize / 4, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fillStyle = "white";
+    ctx.fill();
+  }
 }
 
 export const Editor = { create, update, draw };

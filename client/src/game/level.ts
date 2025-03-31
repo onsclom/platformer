@@ -210,7 +210,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
     if (tile.type === "cannon") {
       ctx.save();
       ctx.translate(tile.x + 0.1, -tile.y + 0.1);
-      drawCannonShape(level, ctx, tile.dir);
+      drawCannonShape(ctx, tile.dir, level.ephemeral.cannonBalls.spawnTimer);
       ctx.restore();
     } else if (tile.type === "jumpToken") {
     } else if (tile.type === "solid" || tile.type === "lava") {
@@ -226,25 +226,11 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
 
   for (const tile of level.static.tiles) {
     if (tile.type === "solid") {
-      ctx.fillStyle = "white";
-      ctx.save();
-      ctx.translate(
-        tile.x * gridSize - gridSize / 2,
-        -tile.y * gridSize - gridSize / 2,
-      );
-      ctx.fillRect(0, 0, gridSize, gridSize);
-      ctx.restore();
+      drawSolidTile(ctx, tile);
     } else if (tile.type === "lava") {
-      ctx.fillStyle = "red";
-      ctx.save();
-      ctx.translate(tile.x, -tile.y);
-      ctx.fillRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
-      ctx.restore();
+      drawLavaTile(ctx, tile);
     } else if (tile.type === "cannon") {
-      ctx.fillStyle = "white";
-      ctx.save();
-      ctx.translate(tile.x, -tile.y);
-      drawCannonShape(level, ctx, tile.dir);
+      drawCannonBase(ctx, tile, level.ephemeral.cannonBalls.spawnTimer);
 
       ctx.fillStyle = "red";
       ctx.globalAlpha = 0.25;
@@ -261,17 +247,11 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       const tokenExists = !level.ephemeral.grabbedJumpTokens.get(
         `${tile.x},${tile.y}`,
       );
-
-      ctx.save();
       if (!tokenExists) {
         ctx.globalAlpha = 0.5;
       }
-      ctx.fillStyle = "yellow";
-      ctx.translate(tile.x, -tile.y);
-      ctx.beginPath();
-      ctx.arc(0, 0, jumpTokenRadius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      drawJumpToken(ctx, tile);
+      ctx.globalAlpha = 1;
     } else if (tile.type === "intervalBlock") {
       const shouldBeOnBasedOnTime =
         Boolean(Math.floor(performance.now() / timeSpentOnPhase) % 2) ===
@@ -280,15 +260,11 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
         `${tile.x},${tile.y}`,
       );
       const isOn = shouldBeOnBasedOnTime && wasOnLastFrame;
-      ctx.save();
       if (!isOn) ctx.globalAlpha = 0.5;
-      ctx.fillStyle = "purple";
-      ctx.translate(
-        tile.x * gridSize - gridSize / 2,
-        -tile.y * gridSize - gridSize / 2,
-      );
-      ctx.fillRect(0, 0, gridSize, gridSize);
-      ctx.restore();
+
+      drawIntervalBlock(ctx, tile, isOn ? "on" : "off");
+
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -313,7 +289,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
   }
 
   // draw cannon balls
-  ctx.fillStyle = "red";
+  ctx.fillStyle = "orange";
   for (const ball of level.ephemeral.cannonBalls.instances) {
     if (ball.dx === 0 && ball.dy === 0) continue; // not active
     ctx.save();
@@ -321,6 +297,9 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
     ctx.arc(0, 0, cannonBallRadius, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 0.05;
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -344,23 +323,104 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
   }
 }
 
-function drawCannonShape(
-  state: State,
+function drawIntervalBlock(
+  ctx: CanvasRenderingContext2D,
+  tile: { x: number; y: number },
+  start: "on" | "off" = "on",
+) {
+  ctx.save();
+  ctx.fillStyle = "purple";
+  ctx.translate(
+    tile.x * gridSize - gridSize / 2,
+    -tile.y * gridSize - gridSize / 2,
+  );
+  ctx.fillRect(0, 0, gridSize, gridSize);
+  ctx.restore();
+}
+
+export const drawTile = {
+  solid: drawSolidTile,
+  jumpToken: drawJumpToken,
+  intervalBlock: drawIntervalBlock,
+  lava: drawLavaTile,
+  cannon: (
+    ctx: CanvasRenderingContext2D,
+    tile: {
+      x: number;
+      y: number;
+    },
+  ) => drawCannonBase(ctx, { ...tile, type: "cannon", dir: "up" }),
+};
+
+export function drawJumpToken(
+  ctx: CanvasRenderingContext2D,
+  tile: { x: number; y: number },
+) {
+  ctx.save();
+  ctx.fillStyle = "yellow";
+  ctx.translate(tile.x, -tile.y);
+  ctx.beginPath();
+  ctx.arc(0, 0, jumpTokenRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+export function drawCannonBase(
+  ctx: CanvasRenderingContext2D,
+  tile: { x: number; y: number } & {
+    type: "cannon";
+    dir: "up" | "down" | "left" | "right";
+  },
+  cannonTimer = 0,
+) {
+  ctx.fillStyle = "white";
+  ctx.save();
+  ctx.translate(tile.x, -tile.y);
+  drawCannonShape(ctx, tile.dir, cannonTimer);
+}
+
+export function drawLavaTile(
+  ctx: CanvasRenderingContext2D,
+  tile: { x: number; y: number },
+) {
+  ctx.fillStyle = "red";
+  ctx.save();
+  ctx.translate(tile.x, -tile.y);
+  ctx.fillRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
+  ctx.restore();
+}
+
+export function drawSolidTile(
+  ctx: CanvasRenderingContext2D,
+  tile: { x: number; y: number },
+) {
+  ctx.fillStyle = "white";
+  ctx.save();
+  ctx.translate(
+    tile.x * gridSize - gridSize / 2,
+    -tile.y * gridSize - gridSize / 2,
+  );
+  ctx.fillRect(0, 0, gridSize, gridSize);
+  ctx.restore();
+}
+
+export function drawCannonShape(
   ctx: CanvasRenderingContext2D,
   dir: "up" | "down" | "left" | "right",
+  cannonBallTimer = 0,
 ) {
   ctx.save();
   const rotation = ["up", "right", "down", "left"].indexOf(dir) * (Math.PI / 2);
   ctx.rotate(rotation);
 
-  const nextBallProgress =
-    (state.ephemeral.cannonBalls.spawnTimer / (1000 / cannonSpawnHz)) ** 2;
+  const nextBallProgress = (cannonBallTimer / (1000 / cannonSpawnHz)) ** 2;
   const shakeFactor = Math.max(1 - nextBallProgress - 0.5, 0);
   ctx.rotate(Math.sin(performance.now() * 0.02) * shakeFactor * 0.4);
 
   ctx.beginPath();
   ctx.arc(0, 0, cannonBallRadius, 0, Math.PI * 2);
   ctx.fill();
+
   const tubeSize = 0.5;
   ctx.translate(0, -0.5 + tubeSize / 2);
   ctx.fillRect(-tubeSize / 2, -tubeSize / 2, tubeSize, tubeSize);
