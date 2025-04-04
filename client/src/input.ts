@@ -53,3 +53,20 @@ document.addEventListener("pointerup", (event) => {
     rightClickDown = false;
   }
 });
+
+function resetInput() {
+  clearInputs();
+  keysDown.clear();
+  leftClickDown = false;
+  rightClickDown = false;
+}
+
+document.addEventListener("blur", () => {
+  resetInput();
+});
+document.addEventListener("visibilitychange", () => {
+  resetInput();
+});
+document.addEventListener("fullscreenchange", () => {
+  resetInput();
+});

@@ -226,7 +226,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
     } else if (tile.type === "trampoline") {
       ctx.save();
 
-      const scaleAnimationTime = 500;
+      const scaleAnimationTime = 350;
       const timeSinceLastTouched =
         level.ephemeral.trampolinesTouched.get(`${tile.x},${tile.y}`) ?? 0;
 
@@ -240,7 +240,8 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.lineWidth = 0.1;
       ctx.beginPath();
 
-      const touchScaleAmt = 0.5;
+      ctx.strokeStyle = "yellow";
+      const touchScaleAmt = 0.75;
       ctx.scale(
         1 + (1 - animationProgress) * touchScaleAmt,
         1 + (1 - animationProgress) * touchScaleAmt,
