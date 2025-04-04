@@ -124,7 +124,7 @@ function drawWithLetterBoxedCamera(
   // UI SPACE
   //////////////////
   ctx.globalAlpha = 0.5;
-  // ctx.strokeStyle = "red";
+  // ctx.strokeStyle = "#f33";
   // ctx.lineWidth = 0.005 * minSide;
   // ctx.strokeRect(
   //   letterBoxed.x,

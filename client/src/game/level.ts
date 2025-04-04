@@ -263,14 +263,14 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.fillStyle = "white";
       drawStaticTile(ctx);
     } else if (tile.type === "lava") {
-      ctx.fillStyle = "red";
+      ctx.fillStyle = "#f33";
       drawStaticTile(ctx);
     } else if (tile.type === "cannon") {
       ctx.fillStyle = "white";
       drawCannon(level, ctx, tile.dir);
 
       ctx.save();
-      ctx.fillStyle = "red";
+      ctx.fillStyle = "#f33";
       ctx.globalAlpha = 0.25;
       const nextBallProgress =
         (level.ephemeral.cannonBalls.spawnTimer / (1000 / cannonSpawnHz)) ** 2;
@@ -366,7 +366,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
   }
 
   // draw cannon balls
-  ctx.fillStyle = "red";
+  ctx.fillStyle = "#f33";
   ctx.strokeStyle = "black";
   ctx.lineWidth = lineWidth;
   for (const ball of level.ephemeral.cannonBalls.instances) {
