@@ -198,6 +198,11 @@ function moveAndSlidePlayer(
     }
   }
 
+  const momentumStop = 0.01;
+  if (Math.abs(state.player.xMomentum) < Math.abs(momentumStop)) {
+    state.player.xMomentum = 0;
+  }
+
   state.player.timeSinceGrounded += dt;
   state.player.timeSinceTouchedWall += dt;
 
