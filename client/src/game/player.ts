@@ -1,5 +1,6 @@
 import { animate } from "../animate";
 import { State as CameraState } from "./camera";
+import { lineWidth } from "./level";
 
 export const playerColor = "hsl(55, 100%, 85%)";
 export const jumpBufferTime = 250;
@@ -95,6 +96,16 @@ function draw(
       playerWidth,
       playerHeight,
     );
+
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = "black";
+    ctx.strokeRect(
+      -playerWidth / 2,
+      -playerHeight / 2,
+      playerWidth,
+      playerHeight,
+    );
+
     ctx.restore();
   }
 

@@ -1,3 +1,4 @@
+import { assert } from "../assert";
 import { playSound } from "../audio";
 import defaultLevel from "./saved-levels/default";
 import { gridSize } from "./top-level-constants";
@@ -16,6 +17,8 @@ const explosionParticleLifetime = 1000;
 
 const maxCannonBalls = 1000;
 const cannonSpawnHz = 0.5;
+
+export const lineWidth = 0.1;
 
 export const cannonBallRadius = (gridSize / 2) * 0.9;
 
@@ -72,6 +75,10 @@ function createEphemeral() {
     },
     trampolinesTouched: new Map<string, number>(),
     intervalBlocksOnLastTick: new Set<string>(),
+
+    background: {
+      tiles: [] as { x: number; y: number }[],
+    },
   };
 }
 
@@ -85,7 +92,50 @@ function create() {
   };
 }
 
+const spawn = {
+  x: 0,
+  y: 0,
+};
+const backgroundLimit = 10000;
+
 export function update(state: State, dt: number) {
+  if (state.ephemeral.background.tiles.length === 0) {
+    const background = new Set<string>(); // ${x},${y}
+    const tiles = new Map(
+      state.static.tiles.map((tile) => [`${tile.x},${tile.y}`, tile]),
+    );
+    const queue = [spawn];
+    while (queue.length > 0 && background.size < backgroundLimit) {
+      const cur = queue.shift()!;
+      for (const [dx, dy] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ] as const) {
+        const x = cur.x + dx;
+        const y = cur.y + dy;
+        const tileString = `${x},${y}`;
+        const tile = tiles.get(tileString);
+        if (background.has(tileString)) continue; // already added
+        if (!tile || tile.type !== "solid") {
+          // add to background
+          background.add(tileString);
+          // add to queue
+          queue.push({ x, y });
+        }
+      }
+    }
+    state.ephemeral.background.tiles = [...background.keys()].map(
+      (tileString) => {
+        const [x, y] = tileString.split(",").map(Number);
+        assert(x !== undefined && y !== undefined);
+        return { x, y };
+      },
+    );
+    console.log("background tiles", background.size);
+  }
+
   // update lava particles
   state.ephemeral.lavaParticles.spawnTimer += dt;
   const lavaTiles = state.static.tiles.filter((tile) => tile.type === "lava");
@@ -197,25 +247,31 @@ export function update(state: State, dt: number) {
 }
 
 export function draw(level: State, ctx: CanvasRenderingContext2D) {
+  // draw level background
+  for (const tile of level.ephemeral.background.tiles) {
+    ctx.save();
+    ctx.translate(tile.x * gridSize, -tile.y * gridSize);
+    ctx.fillStyle = "#ccc";
+    drawStaticTile(ctx);
+    ctx.restore();
+  }
+
   for (const tile of level.static.tiles) {
     ctx.save();
     ctx.translate(tile.x * gridSize, -tile.y * gridSize);
     if (tile.type === "solid") {
       ctx.fillStyle = "white";
-      drawWigglyTile(ctx, tile);
+      drawStaticTile(ctx);
     } else if (tile.type === "lava") {
       ctx.fillStyle = "red";
-      ctx.save();
-      drawWigglyTile(ctx, tile);
-      ctx.restore();
+      drawStaticTile(ctx);
     } else if (tile.type === "cannon") {
       ctx.fillStyle = "white";
-      ctx.save();
-      drawCannonShape(level, ctx, tile.dir);
+      drawCannon(level, ctx, tile.dir);
 
+      ctx.save();
       ctx.fillStyle = "red";
       ctx.globalAlpha = 0.25;
-
       const nextBallProgress =
         (level.ephemeral.cannonBalls.spawnTimer / (1000 / cannonSpawnHz)) ** 2;
       ctx.scale(nextBallProgress, nextBallProgress); // scale to show the progress of the cannonball spawn
@@ -236,23 +292,20 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
           (performance.now() - timeSinceLastTouched) / scaleAnimationTime,
         ) ** 2;
       ctx.save();
-      ctx.scale(0.5, 0.5);
+      // ctx.scale(0.5, 0.5);
       ctx.lineWidth = 0.1;
       ctx.beginPath();
 
-      ctx.strokeStyle = "yellow";
-      const touchScaleAmt = 0.75;
-      ctx.scale(
-        1 + (1 - animationProgress) * touchScaleAmt,
-        1 + (1 - animationProgress) * touchScaleAmt,
-      );
+      ctx.strokeStyle = "";
+      const touchScaleAmt = 0.4 * (1 + (1 - animationProgress)) + 0.4;
       ctx.translate(
         0,
-        Math.sin(performance.now() * 0.01 + tile.x + tile.y) * 0.1,
+        Math.sin(performance.now() * 0.01 + tile.x + tile.y) * 0.05,
       );
-      ctx.moveTo(-gridSize * 0.5, gridSize * 0.5);
-      ctx.lineTo(0, -gridSize * 0.5);
-      ctx.lineTo(gridSize * 0.5, gridSize * 0.5);
+      const scaleAmt = 0.5 * touchScaleAmt;
+      ctx.moveTo(-gridSize * 0.5 * scaleAmt, gridSize * 0.5 * scaleAmt);
+      ctx.lineTo(0, -gridSize * 0.5 * scaleAmt);
+      ctx.lineTo(gridSize * 0.5 * scaleAmt, gridSize * 0.5 * scaleAmt);
       ctx.stroke();
       ctx.restore();
 
@@ -265,28 +318,30 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
         `${tile.x},${tile.y}`,
       );
       const isOn = shouldBeOnBasedOnTime && wasOnLastFrame;
-      ctx.save();
-      if (!isOn) ctx.globalAlpha = 0.5;
-      ctx.fillStyle = "purple";
-      drawWigglyTile(ctx, tile);
-      ctx.restore();
+      if (!isOn) ctx.globalAlpha = 0.25;
+      ctx.fillStyle = "#f3f";
+      drawStaticTile(ctx);
+      ctx.globalAlpha = 1;
     }
     ctx.restore();
   }
 
   ctx.strokeStyle = "black";
-  ctx.lineWidth = 0.05;
+  ctx.lineWidth = lineWidth;
   ctx.lineCap = "round";
   const tiles = new Map(
     level.static.tiles.map((tile) => [`${tile.x},${tile.y}`, tile]),
   );
-  // draw tile outlines
-  const skipOutlines = new Set(["cannon"]);
   for (const tile of level.static.tiles) {
-    if (skipOutlines.has(tile.type)) continue;
     ctx.save();
     ctx.translate(tile.x * gridSize, -tile.y * gridSize);
-    drawWigglyTileBorders(ctx, tile, tiles);
+    if (tile.type === "cannon") {
+      // strokeCannonShape(level, ctx, tile.dir);
+    } else if (tile.type === "lava") {
+      drawWigglyTileBorders(ctx, tile, tiles);
+    } else {
+      drawWigglyTileBorders(ctx, tile, tiles);
+    }
     ctx.restore();
   }
 
@@ -313,7 +368,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
   // draw cannon balls
   ctx.fillStyle = "red";
   ctx.strokeStyle = "black";
-  ctx.lineWidth = 0.05;
+  ctx.lineWidth = lineWidth;
   for (const ball of level.ephemeral.cannonBalls.instances) {
     if (ball.dx === 0 && ball.dy === 0) continue; // not active
     ctx.save();
@@ -345,8 +400,8 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
   }
 }
 
-const amt = 0.0;
-const spd = 0.01;
+const amt = 0.04;
+const spd = 0.005;
 
 function drawWigglyTile(
   ctx: CanvasRenderingContext2D,
@@ -377,6 +432,14 @@ function drawWigglyTile(
   ctx.lineTo(-gridSize * 0.5 + p4x, gridSize * 0.5 + p4y); // bottom-left
   ctx.closePath();
   ctx.fill();
+  ctx.restore();
+}
+
+function drawStaticTile(ctx: CanvasRenderingContext2D) {
+  const size = 1.01;
+  ctx.save();
+  ctx.scale(size, size);
+  ctx.fillRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
   ctx.restore();
 }
 
@@ -427,7 +490,87 @@ function drawWigglyTileBorders(
   }
 }
 
-function drawCannonShape(
+function drawStaticTileBorders(
+  ctx: CanvasRenderingContext2D,
+  tile: { x: number; y: number; type: string },
+  tiles: Map<string, Tile>,
+) {
+  const tileAbove = tiles.get(`${tile.x},${tile.y + 1}`);
+  if (!tileAbove || tileAbove.type !== tile.type) {
+    ctx.beginPath();
+    ctx.moveTo(-gridSize * 0.5, -gridSize * 0.5);
+    ctx.lineTo(gridSize * 0.5, -gridSize * 0.5);
+    ctx.stroke();
+  }
+
+  const tileRight = tiles.get(`${tile.x + 1},${tile.y}`);
+  if (!tileRight || tileRight.type !== tile.type) {
+    ctx.beginPath();
+    ctx.moveTo(gridSize * 0.5, -gridSize * 0.5);
+    ctx.lineTo(gridSize * 0.5, gridSize * 0.5);
+    ctx.stroke();
+  }
+
+  const tileBelow = tiles.get(`${tile.x},${tile.y - 1}`);
+  if (!tileBelow || tileBelow.type !== tile.type) {
+    ctx.beginPath();
+    ctx.moveTo(gridSize * 0.5, gridSize * 0.5);
+    ctx.lineTo(-gridSize * 0.5, gridSize * 0.5);
+    ctx.stroke();
+  }
+
+  const tileLeft = tiles.get(`${tile.x - 1},${tile.y}`);
+  if (!tileLeft || tileLeft.type !== tile.type) {
+    ctx.beginPath();
+    ctx.moveTo(-gridSize * 0.5, gridSize * 0.5);
+    ctx.lineTo(-gridSize * 0.5, -gridSize * 0.5);
+    ctx.stroke();
+  }
+}
+
+function drawCannon(
+  state: State,
+  ctx: CanvasRenderingContext2D,
+  dir: "up" | "down" | "left" | "right",
+) {
+  ctx.save();
+  const rotation = ["up", "right", "down", "left"].indexOf(dir) * (Math.PI / 2);
+  ctx.rotate(rotation);
+
+  const nextBallProgress =
+    (state.ephemeral.cannonBalls.spawnTimer / (1000 / cannonSpawnHz)) ** 2;
+  const shakeFactor = Math.max(1 - nextBallProgress - 0.5, 0);
+  ctx.rotate(Math.sin(performance.now() * 0.02) * shakeFactor * 0.4);
+
+  ctx.lineWidth = lineWidth;
+  ctx.save();
+  const tubeSize = 0.5;
+  ctx.translate(0, -0.5 + tubeSize / 2);
+  ctx.beginPath();
+  ctx.rect(-tubeSize / 2, -tubeSize / 2, tubeSize, tubeSize);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.arc(0, 0, cannonBallRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  {
+    const newTubeSize = tubeSize - lineWidth;
+    ctx.lineWidth = lineWidth;
+    ctx.save();
+    ctx.translate(0, -0.5 + tubeSize / 2);
+    ctx.beginPath();
+    ctx.rect(-newTubeSize / 2, -newTubeSize / 2, newTubeSize, newTubeSize);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+function strokeCannonShape(
   state: State,
   ctx: CanvasRenderingContext2D,
   dir: "up" | "down" | "left" | "right",
@@ -443,10 +586,11 @@ function drawCannonShape(
 
   ctx.beginPath();
   ctx.arc(0, 0, cannonBallRadius, 0, Math.PI * 2);
-  ctx.fill();
   const tubeSize = 0.5;
   ctx.translate(0, -0.5 + tubeSize / 2);
-  ctx.fillRect(-tubeSize / 2, -tubeSize / 2, tubeSize, tubeSize);
+  ctx.rect(-tubeSize / 2, -tubeSize / 2, tubeSize, tubeSize);
+  ctx.stroke();
+
   ctx.restore();
 }
 

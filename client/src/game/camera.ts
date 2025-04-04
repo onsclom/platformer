@@ -24,6 +24,10 @@ function update(camera: State, dt: number) {
   camera.shakeFactor *= (0.9 * shakeLength) ** (dt / 1000);
 }
 
+function mod(a: number, b: number) {
+  return ((a % b) + b) % b;
+}
+
 // todo: think about -y axis problem and solve better?
 // - maybe make my own ctx rendering funcs that flip y for me?
 function drawWithLetterBoxedCamera(
@@ -32,9 +36,6 @@ function drawWithLetterBoxedCamera(
   draw: (ctx: CanvasRenderingContext2D) => void,
 ) {
   const canvasRect = ctx.canvas.getBoundingClientRect();
-
-  ctx.fillStyle = "#aaf";
-  ctx.fillRect(0, 0, canvasRect.width, canvasRect.height);
 
   const aspectRatio = 1;
   const minSide = Math.min(canvasRect.width, canvasRect.height);
@@ -49,12 +50,51 @@ function drawWithLetterBoxedCamera(
   // LETTERBOX SPACE
   //////////////////
   ctx.save();
+
+  const canvasCoordToGameCoord = minSide / camera.width;
+
+  ctx.save();
+  const parallax = 0.5;
+  ctx.translate(
+    mod(-camera.x * parallax, 2) * canvasCoordToGameCoord -
+      canvasCoordToGameCoord * 2,
+    mod(camera.y * parallax, 2) * canvasCoordToGameCoord -
+      canvasCoordToGameCoord * 2,
+  );
+
+  const checkerboardSize = canvasCoordToGameCoord * devicePixelRatio * 2;
+  const checkerboardPatternCanvas = new OffscreenCanvas(
+    checkerboardSize,
+    checkerboardSize,
+  );
+  {
+    const half = checkerboardSize / 2;
+    const checkerboardPatternCtx = checkerboardPatternCanvas.getContext("2d")!;
+    checkerboardPatternCtx.fillStyle = "#222";
+    checkerboardPatternCtx.fillRect(0, 0, checkerboardSize, checkerboardSize);
+    checkerboardPatternCtx.fillStyle = "#333";
+    checkerboardPatternCtx.fillRect(half, 0, half, half);
+    checkerboardPatternCtx.fillRect(0, half, half, half);
+  }
+
+  ctx.createPattern(checkerboardPatternCanvas, "repeat");
+  ctx.fillStyle = ctx.createPattern(checkerboardPatternCanvas, "repeat")!;
+  ctx.save();
+  ctx.scale(1 / devicePixelRatio, 1 / devicePixelRatio);
+  ctx.fillRect(
+    0,
+    0,
+    canvasRect.width * 2 * devicePixelRatio,
+    canvasRect.height * 2 * devicePixelRatio,
+  );
+  ctx.restore();
+  ctx.restore();
+
   ctx.translate(letterBoxed.x, letterBoxed.y);
   // ctx.beginPath();
   // ctx.rect(0, 0, minSide, minSide);
   // ctx.clip();
-
-  ctx.fillRect(0, 0, minSide, minSide);
+  //
   {
     // camera space
     ctx.translate(minSide / 2, minSide / 2);
