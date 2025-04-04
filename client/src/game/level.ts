@@ -1,6 +1,8 @@
 import { playSound } from "../audio";
 import defaultLevel from "./saved-levels/default";
 import { gridSize } from "./top-level-constants";
+import { createNoise3D } from "simplex-noise";
+const noise3D = createNoise3D();
 
 type State = ReturnType<typeof create>;
 
@@ -15,7 +17,6 @@ const explosionParticleLifetime = 1000;
 const maxCannonBalls = 1000;
 const cannonSpawnHz = 0.5;
 
-export const jumpTokenRadius = 0.2;
 export const cannonBallRadius = (gridSize / 2) * 0.9;
 
 export const timeToRespawnJumpToken = 1000;
@@ -32,7 +33,7 @@ export type Tile = {
       type: "cannon";
       dir: "up" | "down" | "left" | "right";
     }
-  | { type: "jumpToken" }
+  | { type: "trampoline" }
   | { type: "intervalBlock"; start: "on" | "off" }
 );
 
@@ -69,7 +70,7 @@ function createEphemeral() {
       nextBall: 0,
       spawnTimer: 0,
     },
-    grabbedJumpTokens: new Map<string, { grabTime: number }>(),
+    trampolinesTouched: new Map<string, number>(),
     intervalBlocksOnLastTick: new Set<string>(),
   };
 }
@@ -193,57 +194,23 @@ export function update(state: State, dt: number) {
   if (shouldPlayExplodeSound) {
     playSound("cannonball-explosion");
   }
-
-  // respawn jump tokens
-  const now = performance.now();
-  for (const [key, token] of state.ephemeral.grabbedJumpTokens.entries()) {
-    if (now - token.grabTime > timeToRespawnJumpToken) {
-      state.ephemeral.grabbedJumpTokens.delete(key);
-    }
-  }
 }
 
 export function draw(level: State, ctx: CanvasRenderingContext2D) {
-  // draw tile shadows
-  ctx.fillStyle = "#aaa";
-  level.static.tiles.forEach((tile) => {
-    if (tile.type === "cannon") {
-      ctx.save();
-      ctx.translate(tile.x + 0.1, -tile.y + 0.1);
-      drawCannonShape(level, ctx, tile.dir);
-      ctx.restore();
-    } else if (tile.type === "jumpToken") {
-    } else if (tile.type === "solid" || tile.type === "lava") {
-      ctx.save();
-      ctx.translate(
-        tile.x * gridSize - gridSize / 2 + 0.1,
-        -tile.y * gridSize - gridSize / 2 + 0.1,
-      );
-      ctx.fillRect(0, 0, gridSize, gridSize);
-      ctx.restore();
-    }
-  });
-
   for (const tile of level.static.tiles) {
+    ctx.save();
+    ctx.translate(tile.x * gridSize, -tile.y * gridSize);
     if (tile.type === "solid") {
       ctx.fillStyle = "white";
-      ctx.save();
-      ctx.translate(
-        tile.x * gridSize - gridSize / 2,
-        -tile.y * gridSize - gridSize / 2,
-      );
-      ctx.fillRect(0, 0, gridSize, gridSize);
-      ctx.restore();
+      drawWigglyTile(ctx, tile);
     } else if (tile.type === "lava") {
       ctx.fillStyle = "red";
       ctx.save();
-      ctx.translate(tile.x, -tile.y);
-      ctx.fillRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
+      drawWigglyTile(ctx, tile);
       ctx.restore();
     } else if (tile.type === "cannon") {
       ctx.fillStyle = "white";
       ctx.save();
-      ctx.translate(tile.x, -tile.y);
       drawCannonShape(level, ctx, tile.dir);
 
       ctx.fillStyle = "red";
@@ -256,21 +223,38 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.arc(0, 0, cannonBallRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
-    } else if (tile.type === "jumpToken") {
-      // make sure it's not captured
-      const tokenExists = !level.ephemeral.grabbedJumpTokens.get(
-        `${tile.x},${tile.y}`,
-      );
-
+    } else if (tile.type === "trampoline") {
       ctx.save();
-      if (!tokenExists) {
-        ctx.globalAlpha = 0.5;
-      }
-      ctx.fillStyle = "yellow";
-      ctx.translate(tile.x, -tile.y);
+
+      const scaleAnimationTime = 500;
+      const timeSinceLastTouched =
+        level.ephemeral.trampolinesTouched.get(`${tile.x},${tile.y}`) ?? 0;
+
+      const animationProgress =
+        Math.min(
+          1,
+          (performance.now() - timeSinceLastTouched) / scaleAnimationTime,
+        ) ** 2;
+      ctx.save();
+      ctx.scale(0.5, 0.5);
+      ctx.lineWidth = 0.1;
       ctx.beginPath();
-      ctx.arc(0, 0, jumpTokenRadius, 0, Math.PI * 2);
-      ctx.fill();
+
+      const touchScaleAmt = 0.5;
+      ctx.scale(
+        1 + (1 - animationProgress) * touchScaleAmt,
+        1 + (1 - animationProgress) * touchScaleAmt,
+      );
+      ctx.translate(
+        0,
+        Math.sin(performance.now() * 0.01 + tile.x + tile.y) * 0.1,
+      );
+      ctx.moveTo(-gridSize * 0.5, gridSize * 0.5);
+      ctx.lineTo(0, -gridSize * 0.5);
+      ctx.lineTo(gridSize * 0.5, gridSize * 0.5);
+      ctx.stroke();
+      ctx.restore();
+
       ctx.restore();
     } else if (tile.type === "intervalBlock") {
       const shouldBeOnBasedOnTime =
@@ -283,13 +267,26 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.save();
       if (!isOn) ctx.globalAlpha = 0.5;
       ctx.fillStyle = "purple";
-      ctx.translate(
-        tile.x * gridSize - gridSize / 2,
-        -tile.y * gridSize - gridSize / 2,
-      );
-      ctx.fillRect(0, 0, gridSize, gridSize);
+      drawWigglyTile(ctx, tile);
       ctx.restore();
     }
+    ctx.restore();
+  }
+
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 0.05;
+  ctx.lineCap = "round";
+  const tiles = new Map(
+    level.static.tiles.map((tile) => [`${tile.x},${tile.y}`, tile]),
+  );
+  // draw tile outlines
+  const skipOutlines = new Set(["cannon"]);
+  for (const tile of level.static.tiles) {
+    if (skipOutlines.has(tile.type)) continue;
+    ctx.save();
+    ctx.translate(tile.x * gridSize, -tile.y * gridSize);
+    drawWigglyTileBorders(ctx, tile, tiles);
+    ctx.restore();
   }
 
   // draw explosion particles
@@ -314,6 +311,8 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
 
   // draw cannon balls
   ctx.fillStyle = "red";
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 0.05;
   for (const ball of level.ephemeral.cannonBalls.instances) {
     if (ball.dx === 0 && ball.dy === 0) continue; // not active
     ctx.save();
@@ -321,6 +320,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
     ctx.arc(0, 0, cannonBallRadius, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -341,6 +341,88 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.fill();
       ctx.restore();
     }
+  }
+}
+
+const amt = 0.0;
+const spd = 0.01;
+
+function drawWigglyTile(
+  ctx: CanvasRenderingContext2D,
+  tile: { x: number; y: number },
+  // player: { x: number; y: number },
+) {
+  // const distToPlayer = Math.hypot(tile.x - player.x / 2, tile.y - player.y / 2);
+  // const amt = Math.max(0, 1 - distToPlayer / 10.0);
+
+  ctx.beginPath();
+  const p1x = noise3D(tile.x, tile.y, performance.now() * spd) * amt;
+  const p2x = noise3D(tile.x + 1, tile.y, performance.now() * spd) * amt;
+  const p3x = noise3D(tile.x + 1, tile.y - 1, performance.now() * spd) * amt;
+  const p4x = noise3D(tile.x, tile.y - 1, performance.now() * spd) * amt;
+
+  const p1y = noise3D(tile.x, tile.y, performance.now() * spd) * amt;
+  const p2y = noise3D(tile.x + 1, tile.y, performance.now() * spd) * amt;
+  const p3y = noise3D(tile.x + 1, tile.y - 1, performance.now() * spd) * amt;
+  const p4y = noise3D(tile.x, tile.y - 1, performance.now() * spd) * amt;
+
+  ctx.save();
+
+  const size = 0.99;
+  ctx.scale(size, size);
+  ctx.moveTo(-gridSize * 0.5 + p1x, -gridSize * 0.5 + p1y); // top-left
+  ctx.lineTo(gridSize * 0.5 + p2x, -gridSize * 0.5 + p2y); // top-right
+  ctx.lineTo(gridSize * 0.5 + p3x, gridSize * 0.5 + p3y); // bottom-right
+  ctx.lineTo(-gridSize * 0.5 + p4x, gridSize * 0.5 + p4y); // bottom-left
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawWigglyTileBorders(
+  ctx: CanvasRenderingContext2D,
+  tile: { x: number; y: number; type: string },
+  tiles: Map<string, Tile>,
+) {
+  const p1x = noise3D(tile.x, tile.y, performance.now() * spd) * amt;
+  const p2x = noise3D(tile.x + 1, tile.y, performance.now() * spd) * amt;
+  const p3x = noise3D(tile.x + 1, tile.y - 1, performance.now() * spd) * amt;
+  const p4x = noise3D(tile.x, tile.y - 1, performance.now() * spd) * amt;
+  const p1y = noise3D(tile.x, tile.y, performance.now() * spd) * amt;
+  const p2y = noise3D(tile.x + 1, tile.y, performance.now() * spd) * amt;
+  const p3y = noise3D(tile.x + 1, tile.y - 1, performance.now() * spd) * amt;
+  const p4y = noise3D(tile.x, tile.y - 1, performance.now() * spd) * amt;
+
+  const tileAbove = tiles.get(`${tile.x},${tile.y + 1}`);
+  if (!tileAbove || tileAbove.type !== tile.type) {
+    ctx.beginPath();
+    ctx.moveTo(-gridSize * 0.5 + p1x, -gridSize * 0.5 + p1y);
+    ctx.lineTo(gridSize * 0.5 + p2x, -gridSize * 0.5 + p2y);
+    ctx.stroke();
+  }
+
+  const tileRight = tiles.get(`${tile.x + 1},${tile.y}`);
+  if (!tileRight || tileRight.type !== tile.type) {
+    ctx.beginPath();
+    ctx.moveTo(gridSize * 0.5 + p2x, -gridSize * 0.5 + p2y);
+    ctx.lineTo(gridSize * 0.5 + p3x, gridSize * 0.5 + p3y);
+    ctx.stroke();
+  }
+
+  const tileBelow = tiles.get(`${tile.x},${tile.y - 1}`);
+  if (!tileBelow || tileBelow.type !== tile.type) {
+    ctx.beginPath();
+    ctx.moveTo(gridSize * 0.5 + p3x, gridSize * 0.5 + p3y);
+    ctx.lineTo(-gridSize * 0.5 + p4x, gridSize * 0.5 + p4y);
+    ctx.stroke();
+  }
+
+  const tileLeft = tiles.get(`${tile.x - 1},${tile.y}`);
+  if (!tileLeft || tileLeft.type !== tile.type) {
+    ctx.beginPath();
+    ctx.moveTo(-gridSize * 0.5 + p4x, gridSize * 0.5 + p4y);
+    ctx.lineTo(-gridSize * 0.5 + p1x, -gridSize * 0.5 + p1y);
+    ctx.stroke();
   }
 }
 

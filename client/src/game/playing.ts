@@ -3,12 +3,7 @@ import { playSound } from "../audio";
 import { justPressed, keysDown } from "../input";
 import { Camera } from "./camera";
 import { circleVsRect } from "./collision";
-import {
-  cannonBallRadius,
-  jumpTokenRadius,
-  Level,
-  timeSpentOnPhase,
-} from "./level";
+import { cannonBallRadius, Level, timeSpentOnPhase } from "./level";
 import {
   jumpBufferTime,
   Player,
@@ -119,40 +114,27 @@ export function update(state: State, dt: number) {
   }
 
   // check if jump token colliding with player
-  const jumpTokens = state.level.static.tiles.filter(
-    (tile) => tile.type === "jumpToken",
+  const trampolines = state.level.static.tiles.filter(
+    (tile) => tile.type === "trampoline",
   );
-  for (const jumpToken of jumpTokens) {
-    if (
-      !state.level.ephemeral.grabbedJumpTokens.get(
-        `${jumpToken.x},${jumpToken.y}`,
-      )
-    ) {
-      const colliding = circleVsRect(
-        {
-          cx: jumpToken.x,
-          cy: jumpToken.y,
-          radius: jumpTokenRadius,
-        },
-        {
-          cx: state.player.x,
-          cy: state.player.y,
-          width: playerWidth,
-          height: playerHeight,
-        },
+  for (const trampoline of trampolines) {
+    const xTouching =
+      Math.abs(state.player.x - trampoline.x) <
+      playerWidth * 0.5 + tileSize * 0.5;
+    const yTouching =
+      Math.abs(state.player.y - trampoline.y) <
+      playerHeight * 0.5 + tileSize * 0.5;
+
+    if (xTouching && yTouching) {
+      // make player do unskippable jump
+      // state.player.timeSinceGrounded = coyote
+
+      playerJump(state.player);
+      state.level.ephemeral.trampolinesTouched.set(
+        `${trampoline.x},${trampoline.y}`,
+        performance.now(),
       );
-      if (
-        colliding &&
-        !state.player.hasExtraJump &&
-        state.player.timeSinceGrounded > 0
-      ) {
-        state.level.ephemeral.grabbedJumpTokens.set(
-          `${jumpToken.x},${jumpToken.y}`,
-          { grabTime: performance.now() },
-        );
-        playSound("jump-token");
-        state.player.hasExtraJump = true;
-      }
+      state.player.canHalveJump = false;
     }
   }
 }
@@ -189,7 +171,10 @@ export function updateIntervalBlocksOnLastFrame(
       const touchingPlayerY =
         Math.abs(player.y - tile.y) < playerHeight * 0.5 + tileSize * 0.5;
       const touching = touchingPlayerX && touchingPlayerY;
-      if (!touching) {
+      const playerOnTile =
+        Math.abs(player.y - playerHeight * 0.5 - (tile.y + tileSize * 0.5)) <
+        0.1;
+      if (!touching || playerOnTile) {
         level.ephemeral.intervalBlocksOnLastTick.add(`${tile.x},${tile.y}`);
       }
     } else {
@@ -330,16 +315,7 @@ function moveAndSlidePlayer(
     state.player.timeSinceJumpBuffered < jumpBufferTime &&
     (state.player.timeSinceGrounded < coyoteTime || state.player.hasExtraJump)
   ) {
-    state.player.dy = jumpStrength;
-    state.player.timeSinceGrounded = coyoteTime;
-    state.player.hasExtraJump = false;
-    state.player.canHalveJump = true;
-    state.player.timeSinceJumpBuffered = jumpBufferTime;
-
-    playSound("jump");
-    const jumpStretch = 0.25;
-    state.player.xScale = 1 - jumpStretch;
-    state.player.yScale = 1 + jumpStretch;
+    playerJump(state.player);
 
     const particleAmount = 20;
     for (let i = 0; i < particleAmount; i++) {
@@ -348,6 +324,22 @@ function moveAndSlidePlayer(
   }
 
   return Math.abs(dx) > 0 && state.player.timeSinceGrounded === 0;
+}
+
+function playerJump(player: State["player"]) {
+  if (player.dy <= 0) {
+    playSound("jump");
+  }
+
+  player.dy = jumpStrength;
+  player.timeSinceGrounded = coyoteTime;
+  player.hasExtraJump = false;
+  player.canHalveJump = true;
+  player.timeSinceJumpBuffered = jumpBufferTime;
+
+  const jumpStretch = 0.25;
+  player.xScale = 1 - jumpStretch;
+  player.yScale = 1 + jumpStretch;
 }
 
 function killPlayer(state: State) {

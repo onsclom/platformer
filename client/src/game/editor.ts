@@ -30,7 +30,7 @@ export function update(state: State, dt: number) {
     "1": "solid",
     "2": "lava",
     "3": "cannon",
-    "4": "jumpToken",
+    "4": "trampoline",
     "5": "intervalBlock",
   };
 
