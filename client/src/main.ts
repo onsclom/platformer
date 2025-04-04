@@ -64,6 +64,10 @@ function raf() {
 
     curDraw(state, ctx);
 
+    const fontSize = 30;
+    ctx.fillStyle = "red";
+    ctx.font = `${fontSize}px Arial`;
+
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fillStyle = "red";
@@ -71,6 +75,11 @@ function raf() {
       `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`,
       10,
       10,
+    );
+    ctx.fillText(
+      `frame time: ${Math.round(performance.now() - frameStart)}ms`,
+      10,
+      10 + fontSize,
     );
   }
   if (LOG_FRAME_TIMES) console.timeEnd("frame");
