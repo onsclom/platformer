@@ -199,12 +199,17 @@ function moveAndSlidePlayer(
   }
 
   state.player.timeSinceGrounded += dt;
+  state.player.timeSinceTouchedWall += dt;
+
+  const easeFactor = 0.0125;
+  state.player.xMomentum = animate(state.player.xMomentum, 0, dt * easeFactor);
 
   // handle X-axis
-  let dx = 0;
-
-  if (keysDown.has("a")) dx -= 1;
-  if (keysDown.has("d")) dx += 1;
+  let pdx = 0;
+  if (keysDown.has("a")) pdx -= 1;
+  if (keysDown.has("d")) pdx += 1;
+  let dx = pdx;
+  dx += state.player.xMomentum * (dt / 1000);
 
   state.camera.angle = animate(state.camera.angle, dx * 0.02, dt * 0.02);
   {
@@ -238,10 +243,22 @@ function moveAndSlidePlayer(
           Math.abs(tileBottomRight.y - playerTopLeft.y),
         );
 
+        const wallSlidingMaxSpeed = 4;
+
         if (yOverlap > 0.001) {
           if (dx > 0) {
+            if (pdx == 1) {
+              state.player.timeSinceTouchedWall = 0;
+              state.player.wallJumpDir = 1;
+              state.player.dy = Math.max(state.player.dy, -wallSlidingMaxSpeed);
+            }
             state.player.x = tileTopLeft.x - playerWidth * 0.5;
           } else {
+            if (pdx == -1) {
+              state.player.timeSinceTouchedWall = 0;
+              state.player.wallJumpDir = -1;
+              state.player.dy = Math.max(state.player.dy, -wallSlidingMaxSpeed);
+            }
             state.player.x = tileBottomRight.x + playerWidth * 0.5;
           }
         }
@@ -296,7 +313,6 @@ function moveAndSlidePlayer(
           state.player.y = tileTopLeft.y + playerHeight * 0.5;
           state.player.dy = 0;
           state.player.timeSinceGrounded = 0;
-          state.player.hasExtraJump = false;
           state.player.canHalveJump = false;
         } else {
           state.player.y = tileBottomRight.y - playerHeight * 0.5;
@@ -313,7 +329,7 @@ function moveAndSlidePlayer(
 
   if (
     state.player.timeSinceJumpBuffered < jumpBufferTime &&
-    (state.player.timeSinceGrounded < coyoteTime || state.player.hasExtraJump)
+    state.player.timeSinceGrounded < coyoteTime
   ) {
     playerJump(state.player);
 
@@ -321,6 +337,21 @@ function moveAndSlidePlayer(
     for (let i = 0; i < particleAmount; i++) {
       Player.spawnParticle(state.player, 1.5);
     }
+  }
+
+  if (
+    state.player.timeSinceJumpBuffered < jumpBufferTime &&
+    state.player.timeSinceTouchedWall < coyoteTime
+  ) {
+    playerJump(state.player);
+    const wallJumpMomentum = 2500;
+    state.player.xMomentum = -state.player.wallJumpDir * wallJumpMomentum;
+
+    // TODO: sideways particles?
+    // const particleAmount = 20;
+    // for (let i = 0; i < particleAmount; i++) {
+    //   Player.spawnParticle(state.player, 1.5);
+    // }
   }
 
   return Math.abs(dx) > 0 && state.player.timeSinceGrounded === 0;
@@ -333,7 +364,6 @@ function playerJump(player: State["player"]) {
 
   player.dy = jumpStrength;
   player.timeSinceGrounded = coyoteTime;
-  player.hasExtraJump = false;
   player.canHalveJump = true;
   player.timeSinceJumpBuffered = jumpBufferTime;
 

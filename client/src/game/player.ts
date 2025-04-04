@@ -25,8 +25,14 @@ function create() {
     xScale: 1,
     yScale: 1,
 
+    xMomentum: 0,
+
     dy: 0,
     timeSinceGrounded: 0,
+
+    timeSinceTouchedWall: 0,
+    wallJumpDir: 0,
+
     timeSinceJumpBuffered: jumpBufferTime,
     hasExtraJump: false,
     canHalveJump: false,
