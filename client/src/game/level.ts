@@ -15,7 +15,7 @@ const fadeInTime = 20;
 const maxExplosionParticles = 1000;
 const explosionParticleLifetime = 1000;
 
-const maxCannonBalls = 1000;
+const maxCannonBalls = 500;
 const cannonSpawnHz = 0.5;
 
 export const lineWidth = 0.1;
@@ -138,13 +138,13 @@ export function update(state: State, dt: number) {
 
   // update lava particles
   state.ephemeral.lavaParticles.spawnTimer += dt;
-  const lavaTiles = state.static.tiles.filter((tile) => tile.type === "lava");
   while (
     state.ephemeral.lavaParticles.spawnTimer >
     1000 / lavaParticleSpawnHz
   ) {
     state.ephemeral.lavaParticles.spawnTimer -= 1000 / lavaParticleSpawnHz;
-    for (const tile of lavaTiles) {
+    for (const tile of state.static.tiles) {
+      if (tile.type !== "lava") continue;
       const particle =
         state.ephemeral.lavaParticles.instances[
           state.ephemeral.lavaParticles.nextParticle
@@ -218,14 +218,12 @@ export function update(state: State, dt: number) {
     }
   }
   let shouldPlayExplodeSound = false;
+  // check if colliding with solid tiles
+  const solidTiles = state.static.tiles.filter((tile) => tile.type === "solid");
   for (const ball of state.ephemeral.cannonBalls.instances) {
     if (ball.dx === 0 && ball.dy === 0) continue; // not active
     ball.x += (ball.dx * dt) / 1000;
     ball.y += (ball.dy * dt) / 1000;
-    // check if colliding with solid tiles
-    const solidTiles = state.static.tiles.filter(
-      (tile) => tile.type === "solid",
-    );
     for (const tile of solidTiles) {
       // we can treat cannonballs like a square and get same results
       const xDist = Math.abs(ball.x - tile.x);
@@ -248,14 +246,17 @@ export function update(state: State, dt: number) {
 
 export function draw(level: State, ctx: CanvasRenderingContext2D) {
   // draw level background
+  ctx.fillStyle = "#ccc";
   for (const tile of level.ephemeral.background.tiles) {
     ctx.save();
     ctx.translate(tile.x * gridSize, -tile.y * gridSize);
-    ctx.fillStyle = "#ccc";
     drawStaticTile(ctx);
     ctx.restore();
   }
 
+  const intervalAOn = Boolean(
+    Math.floor(performance.now() / timeSpentOnPhase) % 2,
+  );
   for (const tile of level.static.tiles) {
     ctx.save();
     ctx.translate(tile.x * gridSize, -tile.y * gridSize);
@@ -311,9 +312,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
 
       ctx.restore();
     } else if (tile.type === "intervalBlock") {
-      const shouldBeOnBasedOnTime =
-        Boolean(Math.floor(performance.now() / timeSpentOnPhase) % 2) ===
-        (tile.start === "on");
+      const shouldBeOnBasedOnTime = intervalAOn === (tile.start === "on");
       const wasOnLastFrame = level.ephemeral.intervalBlocksOnLastTick.has(
         `${tile.x},${tile.y}`,
       );

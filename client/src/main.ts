@@ -6,7 +6,7 @@ let canvas = document.querySelector("canvas");
 
 let previousTime = performance.now();
 let timeToProcess = 0;
-const LOG_FRAME_TIMES = false;
+const LOG_FRAME_TIMES = true;
 
 let curUpdate = update;
 let curDraw = draw;
@@ -32,6 +32,7 @@ if (!canvas) {
 
 function raf() {
   assert(canvas);
+  const frameStart = performance.now();
   if (LOG_FRAME_TIMES) console.time("frame");
   {
     requestAnimationFrame(raf);
@@ -52,7 +53,7 @@ function raf() {
     ctx.scale(devicePixelRatio, devicePixelRatio);
 
     timeToProcess += dt;
-    const physicHz = 1000;
+    const physicHz = 500;
     const physicTickMs = 1000 / physicHz;
     while (timeToProcess > physicTickMs) {
       timeToProcess -= physicTickMs;
@@ -62,6 +63,15 @@ function raf() {
     }
 
     curDraw(state, ctx);
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "red";
+    ctx.fillText(
+      `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`,
+      10,
+      10,
+    );
   }
   if (LOG_FRAME_TIMES) console.timeEnd("frame");
 }

@@ -39,12 +39,13 @@ export function update(state: State, dt: number) {
   }
 
   let walking = false;
+  const intervalAOn = Boolean(
+    Math.floor(performance.now() / timeSpentOnPhase) % 2,
+  );
   const solidTiles = state.level.static.tiles.filter((tile) => {
     if (tile.type === "solid") return true;
     if (tile.type === "intervalBlock") {
-      const shouldBeOnBasedOnTime =
-        Boolean(Math.floor(performance.now() / timeSpentOnPhase) % 2) ===
-        (tile.start === "on");
+      const shouldBeOnBasedOnTime = intervalAOn === (tile.start === "on");
       return (
         shouldBeOnBasedOnTime &&
         state.level.ephemeral.intervalBlocksOnLastTick.has(
@@ -74,15 +75,15 @@ export function update(state: State, dt: number) {
     }
   }
 
-  const lavas = state.level.static.tiles.filter((tile) => tile.type === "lava");
-  for (const lava of lavas) {
+  for (const tile of state.level.static.tiles) {
+    if (tile.type !== "lava") continue;
     // see if touching player
     const leniency = 0.2;
     const xTouching =
-      Math.abs(state.player.x - lava.x) <
+      Math.abs(state.player.x - tile.x) <
       playerWidth * 0.5 + tileSize * 0.5 - leniency;
     const yTouching =
-      Math.abs(state.player.y - lava.y) <
+      Math.abs(state.player.y - tile.y) <
       playerHeight * 0.5 + tileSize * 0.5 - leniency;
     if (xTouching && yTouching) {
       killPlayer(state);
@@ -154,13 +155,12 @@ export function updateIntervalBlocksOnLastFrame(
   player?: State["player"],
 ) {
   // update interval blocks on last frame
-  const intervalTiles = level.static.tiles.filter(
-    (tile) => tile.type === "intervalBlock",
+  const intervalAOn = Boolean(
+    Math.floor(performance.now() / timeSpentOnPhase) % 2,
   );
-  for (const tile of intervalTiles) {
-    const shouldBeOnBasedOnTime =
-      Boolean(Math.floor(performance.now() / timeSpentOnPhase) % 2) ===
-      (tile.start === "on");
+  for (const tile of level.static.tiles) {
+    if (tile.type !== "intervalBlock") continue;
+    const shouldBeOnBasedOnTime = intervalAOn === (tile.start === "on");
     if (shouldBeOnBasedOnTime) {
       if (!player) {
         level.ephemeral.intervalBlocksOnLastTick.add(`${tile.x},${tile.y}`);
@@ -207,7 +207,11 @@ function moveAndSlidePlayer(
   state.player.timeSinceTouchedWall += dt;
 
   const easeFactor = 0.0125;
-  state.player.xMomentum = animate(state.player.xMomentum, 0, dt * easeFactor);
+  state.player.xMomentum = animate(
+    state.player.xMomentum,
+    0,
+    dt ** 2 * easeFactor,
+  );
 
   // handle X-axis
   let pdx = 0;
