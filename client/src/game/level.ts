@@ -568,30 +568,6 @@ function drawCannon(
   ctx.restore();
 }
 
-function strokeCannonShape(
-  state: State,
-  ctx: CanvasRenderingContext2D,
-  dir: "up" | "down" | "left" | "right",
-) {
-  ctx.save();
-  const rotation = ["up", "right", "down", "left"].indexOf(dir) * (Math.PI / 2);
-  ctx.rotate(rotation);
-
-  const nextBallProgress =
-    (state.ephemeral.cannonBalls.spawnTimer / (1000 / cannonSpawnHz)) ** 2;
-  const shakeFactor = Math.max(1 - nextBallProgress - 0.5, 0);
-  ctx.rotate(Math.sin(performance.now() * 0.02) * shakeFactor * 0.4);
-
-  ctx.beginPath();
-  ctx.arc(0, 0, cannonBallRadius, 0, Math.PI * 2);
-  const tubeSize = 0.5;
-  ctx.translate(0, -0.5 + tubeSize / 2);
-  ctx.rect(-tubeSize / 2, -tubeSize / 2, tubeSize, tubeSize);
-  ctx.stroke();
-
-  ctx.restore();
-}
-
 const explosionAmount = 10;
 function spawnCannonBallExplosion(level: State, x: number, y: number) {
   for (let i = 0; i < explosionAmount; i++) {

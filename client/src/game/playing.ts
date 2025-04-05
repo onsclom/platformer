@@ -15,9 +15,9 @@ import {
 type State = ReturnType<typeof create>;
 
 const tileSize = 1;
-const gravity = 40;
+const gravity = 60;
+const jumpStrength = 25;
 const speed = 8;
-const jumpStrength = 20;
 const coyoteTime = 75;
 const maxFallSpeed = 20;
 

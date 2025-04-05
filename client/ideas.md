@@ -37,6 +37,7 @@ game plan:
   - spawn
   - finish
   - cannon (has directions n,e,s,w) maybe 8 dirs?
+
   - trampoline blocks (^)
   - turrets
   - jump jems? (restore jump)

@@ -8,7 +8,7 @@ export const jumpBufferTime = 250;
 type State = ReturnType<typeof create>;
 
 export const playerWidth = 0.8;
-export const playerHeight = 0.8;
+export const playerHeight = 1.2;
 
 const maxPlayerParticles = 1000;
 
@@ -75,7 +75,7 @@ function draw(
   {
     ctx.save();
     ctx.translate(state.x, -state.y);
-    const oscillateStrength = Math.abs(camera.angle) * 2.5;
+    const oscillateStrength = Math.abs(camera.angle) * 1;
     const oscRate = 0.02;
     if (state.timeSinceGrounded === 0) {
       ctx.translate(
