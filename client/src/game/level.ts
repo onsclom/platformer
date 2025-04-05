@@ -352,7 +352,6 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
           (performance.now() - timeSinceLastTouched) / scaleAnimationTime,
         ) ** 2;
       ctx.save();
-      // ctx.scale(0.5, 0.5);
       ctx.lineWidth = 0.1;
       ctx.beginPath();
 
@@ -362,6 +361,11 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
         0,
         Math.sin(performance.now() * 0.01 + tile.x + tile.y) * 0.05,
       );
+
+      const angle =
+        (1 - animationProgress) * Math.sin(performance.now() * 0.02) * 0.2;
+      ctx.rotate(angle);
+
       const scaleAmt = 0.5 * touchScaleAmt;
       ctx.moveTo(-gridSize * 0.5 * scaleAmt, gridSize * 0.5 * scaleAmt);
       ctx.lineTo(0, -gridSize * 0.5 * scaleAmt);

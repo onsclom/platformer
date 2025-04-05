@@ -30,7 +30,7 @@ export function update(state: State, dt: number) {
     restartLevel(state);
   }
 
-  if (justPressed.has("Enter") || justPressed.has("e")) {
+  if (justPressed.has("Enter") || justPressed.has("KeyE")) {
     if (state.curScene === "editor") {
       state.curScene = "playing";
       state.sceneData.playing.level = state.sceneData.editor.level;

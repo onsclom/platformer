@@ -65,12 +65,13 @@ function raf() {
     curDraw(state, ctx);
 
     const fontSize = 30;
-    ctx.fillStyle = "red";
-    ctx.font = `${fontSize}px Arial`;
 
+    ctx.save();
+    ctx.translate(2, 2);
+    ctx.fillStyle = "black";
+    ctx.font = `${fontSize}px Arial`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillStyle = "red";
     ctx.fillText(
       `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`,
       10,
@@ -81,6 +82,23 @@ function raf() {
       10,
       10 + fontSize,
     );
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle = "white";
+    ctx.font = `${fontSize}px Arial`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(
+      `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`,
+      10,
+      10,
+    );
+    ctx.fillText(
+      `frame time: ${Math.round(performance.now() - frameStart)}ms`,
+      10,
+      10 + fontSize,
+    );
+    ctx.restore();
   }
   if (LOG_FRAME_TIMES) console.timeEnd("frame");
 }
