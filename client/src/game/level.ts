@@ -1,6 +1,8 @@
 import { assert } from "../assert";
 import { playSound } from "../audio";
-import { playerSpeed } from "./playing";
+import { circleVsRect } from "./collision";
+import { playerHeight, playerWidth } from "./player";
+import { playerSpeed, tileSize } from "./playing";
 import defaultLevel from "./saved-levels/HARD";
 import { gridSize } from "./top-level-constants";
 import { createNoise3D } from "simplex-noise";
@@ -22,9 +24,13 @@ const cannonBallTrailParticleLifetime = 500;
 const maxCannonBalls = 500;
 const cannonSpawnHz = 1;
 
+const maxTurretBullets = 500;
+const turretBulletSpawnHz = 1;
+
 export const lineWidth = 0.1;
 
 export const cannonBallRadius = (gridSize / 2) * 0.9;
+export const turretBulletRadius = (gridSize / 2) * 0.3;
 
 export const timeToRespawnJumpToken = 1000;
 
@@ -42,6 +48,7 @@ export type Tile = {
     }
   | { type: "trampoline" }
   | { type: "interval"; start: "on" | "off" }
+  | { type: "turret" }
 );
 
 function createEphemeral() {
@@ -77,6 +84,16 @@ function createEphemeral() {
       nextBall: 0,
       spawnTimer: 0,
     },
+    turretBullets: {
+      instances: Array.from({ length: maxTurretBullets }, () => ({
+        x: 0,
+        y: 0,
+        dx: 0,
+        dy: 0,
+      })),
+      nextBullet: 0,
+      spawnTimer: 0,
+    },
     cannonBallTrailParticles: {
       instances: Array.from({ length: maxCannonballTrailParticles }, () => ({
         lifetime: 0,
@@ -110,7 +127,11 @@ const spawn = {
 };
 const backgroundLimit = 5000;
 
-export function update(state: State, dt: number) {
+export function update(
+  state: State,
+  dt: number,
+  player: { x: number; y: number },
+) {
   if (state.ephemeral.background.tiles.length === 0) {
     const background = new Set<string>(); // ${x},${y}
     const tiles = new Map(
@@ -192,7 +213,7 @@ export function update(state: State, dt: number) {
     }
   }
 
-  // update cannon balls
+  // spawn new cannon balls
   state.ephemeral.cannonBalls.spawnTimer += dt;
   while (state.ephemeral.cannonBalls.spawnTimer > 1000 / cannonSpawnHz) {
     state.ephemeral.cannonBalls.spawnTimer -= 1000 / cannonSpawnHz;
@@ -232,6 +253,37 @@ export function update(state: State, dt: number) {
     }
   }
 
+  // spawn new turret bullets
+  state.ephemeral.turretBullets.spawnTimer += dt;
+  while (
+    state.ephemeral.turretBullets.spawnTimer >
+    1000 / turretBulletSpawnHz
+  ) {
+    state.ephemeral.turretBullets.spawnTimer -= 1000 / turretBulletSpawnHz;
+    for (const tile of state.static.tiles) {
+      if (tile.type === "turret") {
+        const bullet =
+          state.ephemeral.turretBullets.instances[
+            state.ephemeral.turretBullets.nextBullet
+          ]!;
+        bullet.x = tile.x;
+        bullet.y = tile.y;
+
+        // aim towards player
+        const dx = player.x - tile.x;
+        const dy = player.y - tile.y;
+        const angle = Math.atan2(dy, dx);
+
+        const bulletSpeed = playerSpeed;
+        bullet.dx = Math.cos(angle) * bulletSpeed;
+        bullet.dy = Math.sin(angle) * bulletSpeed;
+
+        state.ephemeral.turretBullets.nextBullet =
+          (state.ephemeral.turretBullets.nextBullet + 1) % maxTurretBullets;
+      }
+    }
+  }
+
   // update cannon ball trail particles
   state.ephemeral.cannonBallTrailParticles.spawnTimer += dt;
   const cannonBallTrailParticleSpawnHz = 1000 / 20;
@@ -265,8 +317,8 @@ export function update(state: State, dt: number) {
     }
   }
 
+  // update cannon balls
   let shouldPlayExplodeSound = false;
-  // check if colliding with solid tiles
   const solidTiles = state.static.tiles.filter((tile) => tile.type === "solid");
   for (const ball of state.ephemeral.cannonBalls.instances) {
     if (ball.dx === 0 && ball.dy === 0) continue; // not active
@@ -288,11 +340,32 @@ export function update(state: State, dt: number) {
     }
   }
   if (shouldPlayExplodeSound) {
-    playSound("cannonball-explosion");
+    // playSound("cannonball-explosion");
+  }
+
+  // update turret bullets
+  for (const bullet of state.ephemeral.turretBullets.instances) {
+    if (bullet.dx === 0 && bullet.dy === 0) continue; // not active
+    bullet.x += (bullet.dx * dt) / 1000;
+    bullet.y += (bullet.dy * dt) / 1000;
+    for (const tile of solidTiles) {
+      const colliding = circleVsRect(
+        { cx: bullet.x, cy: bullet.y, radius: turretBulletRadius },
+        { cx: tile.x, cy: tile.y, width: tileSize, height: tileSize },
+      );
+      if (colliding) {
+        bullet.dx = 0;
+        bullet.dy = 0;
+      }
+    }
   }
 }
 
-export function draw(level: State, ctx: CanvasRenderingContext2D) {
+export function draw(
+  level: State,
+  ctx: CanvasRenderingContext2D,
+  player: { x: number; y: number },
+) {
   // draw level background
   ctx.fillStyle = "#ccc";
   for (const tile of level.ephemeral.background.tiles) {
@@ -302,15 +375,21 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
     ctx.restore();
   }
 
-  ctx.fillStyle = "#bbb";
-  ctx.lineWidth = 0.001;
-  for (const tile of level.ephemeral.background.tiles) {
-    ctx.save();
-    ctx.translate(tile.x * gridSize, -tile.y * gridSize);
-    // drawStaticTile(ctx);
-    ctx.strokeRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
-    ctx.restore();
-  }
+  // ctx.strokeStyle = "#bbb";
+  // ctx.fillStyle = "#bbb";
+  // ctx.lineWidth = 0.01;
+  // for (const tile of level.ephemeral.background.tiles) {
+  //   ctx.save();
+  //   ctx.translate(tile.x * gridSize, -tile.y * gridSize);
+  //   // // drawStaticTile(ctx);
+  //   ctx.strokeRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
+
+  //   ctx.beginPath();
+  //   ctx.arc(0, 0, gridSize * 0.05, 0, Math.PI * 2);
+  //   ctx.fill();
+
+  //   ctx.restore();
+  // }
 
   const intervalAOn = Boolean(
     Math.floor(performance.now() / timeSpentOnPhase) % 2,
@@ -397,6 +476,21 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
 
       ctx.restore();
       ctx.globalAlpha = 1;
+    } else if (tile.type === "turret") {
+      const angleToPlayer = Math.atan2(tile.y - player.y, tile.x - player.x);
+
+      // draw line from center towards player
+      ctx.save();
+      ctx.fillStyle = "#f33";
+      ctx.lineWidth = 0.1;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(
+        (-Math.cos(angleToPlayer) * gridSize) / 2,
+        (Math.sin(angleToPlayer) * gridSize) / 2,
+      );
+      ctx.stroke();
+      ctx.restore();
     }
     ctx.restore();
   }
@@ -410,8 +504,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
   for (const tile of level.static.tiles) {
     ctx.save();
     ctx.translate(tile.x * gridSize, -tile.y * gridSize);
-    if (tile.type === "cannon") {
-      // strokeCannonShape(level, ctx, tile.dir);
+    if (tile.type === "cannon" || tile.type === "turret") {
     } else if (tile.type === "lava") {
       drawWigglyTileBorders(ctx, tile, tiles);
     } else {
@@ -465,21 +558,6 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
     }
   }
 
-  // draw cannon balls
-  ctx.fillStyle = "#f33";
-  ctx.strokeStyle = "black";
-  ctx.lineWidth = lineWidth;
-  for (const ball of level.ephemeral.cannonBalls.instances) {
-    if (ball.dx === 0 && ball.dy === 0) continue; // not active
-    ctx.save();
-    ctx.translate(ball.x, -ball.y);
-    ctx.beginPath();
-    ctx.arc(0, 0, cannonBallRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-  }
-
   // draw lava particles
   ctx.fillStyle = "orange";
   for (const particle of level.ephemeral.lavaParticles.instances) {
@@ -501,6 +579,36 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.fill();
       ctx.restore();
     }
+  }
+
+  // draw cannon balls
+  ctx.fillStyle = "#f33";
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = lineWidth;
+  for (const ball of level.ephemeral.cannonBalls.instances) {
+    if (ball.dx === 0 && ball.dy === 0) continue; // not active
+    ctx.save();
+    ctx.translate(ball.x, -ball.y);
+    ctx.beginPath();
+    ctx.arc(0, 0, cannonBallRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // draw turret bullets
+  ctx.fillStyle = "#f33";
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = lineWidth;
+  for (const bullet of level.ephemeral.turretBullets.instances) {
+    if (bullet.dx === 0 && bullet.dy === 0) continue; // not active
+    ctx.save();
+    ctx.translate(bullet.x, -bullet.y);
+    ctx.beginPath();
+    ctx.arc(0, 0, turretBulletRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
 }
 

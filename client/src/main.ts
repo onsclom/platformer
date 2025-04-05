@@ -67,7 +67,7 @@ function raf() {
     const fontSize = 30;
 
     ctx.save();
-    ctx.translate(2, 2);
+    ctx.translate(1.5, 1.5);
     ctx.fillStyle = "black";
     ctx.font = `${fontSize}px Arial`;
     ctx.textAlign = "left";

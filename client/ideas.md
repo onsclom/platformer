@@ -2,9 +2,14 @@
   - flappy bird mode
   - VVVV mode
   - normal mode
-  - projectile mode
+  - "cannon" mode (feather mode from celeste)
+    - https://www.youtube.com/watch?v=3Za9Z_qAhtg
   - bubble cannon (like animal well!)
     - balloons to be more distinct?
+
+  - turrets
+    X ones that shoot basic bullets at you
+    - ones that shoot homing bullets at you?
 
 - improve player graphics
   - make player wobbly
@@ -25,6 +30,18 @@
   - fix sounds to only play while only happening on screen
   - add sound to interval blocks switching
   - update game with a good color palette? check lospec prob
+    - maybe support multiple palettes
+  - mobile controls!
+    - virtual joystick on left
+    - jump on right
+  - fix performance
+    - use chrome performance tools
+  - support controller
 
-- performance
-  - use chrome performance measurer to find bottlenecks
+- editor (lower priority)
+  - select rect of tiles and move it
+  - copy it maybe too?
+
+---
+
+- different sound for tramps

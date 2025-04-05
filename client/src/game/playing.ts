@@ -14,7 +14,7 @@ import {
 
 type State = ReturnType<typeof create>;
 
-const tileSize = 1;
+export const tileSize = 1;
 
 const gameSpeed = 0.9;
 
@@ -106,7 +106,7 @@ export function update(state: State, dt: number) {
     }
   }
 
-  Level.update(state.level, dt);
+  Level.update(state.level, dt, state.player);
 
   // check if cannon ball colliding with player
   for (const ball of state.level.ephemeral.cannonBalls.instances) {
@@ -128,6 +128,28 @@ export function update(state: State, dt: number) {
       Level.spawnCannonBallExplosion(state.level, ball.x, ball.y);
       ball.dx = 0;
       ball.dy = 0;
+    }
+  }
+
+  // check if bullets collide with player
+  for (const bullet of state.level.ephemeral.turretBullets.instances) {
+    if (bullet.dx === 0 && bullet.dy === 0) continue; // inactive bullet
+
+    const colliding = circleVsRect(
+      { cx: bullet.x, cy: bullet.y, radius: 0 },
+      {
+        cx: state.player.x,
+        cy: state.player.y,
+        width: playerWidth,
+        height: playerHeight,
+      },
+    );
+
+    if (colliding) {
+      killPlayer(state);
+      // Level.spawnBulletExplosion(state.level, bullet.x, bullet.y);
+      bullet.dx = 0;
+      bullet.dy = 0;
     }
   }
 
@@ -160,7 +182,7 @@ export function update(state: State, dt: number) {
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
   Camera.drawWithLetterBoxedCamera(state.camera, ctx, () => {
     // draw solid tiles
-    Level.draw(state.level, ctx);
+    Level.draw(state.level, ctx, state.player);
     Player.draw(state.player, ctx, state.camera);
   });
 }

@@ -32,6 +32,7 @@ export function update(state: State, dt: number) {
     Digit3: "cannon",
     Digit4: "trampoline",
     Digit5: "interval",
+    Digit6: "turret",
   };
 
   for (const [hotkey, placingType] of Object.entries(hotkeyToPlacingType)) {
@@ -151,7 +152,7 @@ export function update(state: State, dt: number) {
 
   state.level.static.tiles = Array.from(posToTileMap.values());
 
-  Level.update(state.level, dt);
+  Level.update(state.level, dt, { x: state.camera.x, y: state.camera.y });
 
   updateIntervalBlocksOnLastFrame(state.level);
 
@@ -179,7 +180,7 @@ export function update(state: State, dt: number) {
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
   Camera.drawWithLetterBoxedCamera(state.camera, ctx, (ctx) => {
-    Level.draw(state.level, ctx);
+    Level.draw(state.level, ctx, { x: state.camera.x, y: state.camera.y });
 
     // draw hovered
     if (state.hoveredTile) {
