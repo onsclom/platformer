@@ -9,7 +9,7 @@ const noise3D = createNoise3D();
 type State = ReturnType<typeof create>;
 
 const maxLavaParticles = 1000;
-const lavaParticleSpawnHz = 20;
+const lavaParticleSpawnHz = 10;
 const lavaParticleLifetime = 500;
 const fadeInTime = 20;
 
@@ -165,7 +165,10 @@ export function update(state: State, dt: number) {
     if (particle.lifetime > 0) {
       particle.lifetime -= dt;
       particle.x += (particle.dx * dt) / 1000;
-      particle.y += (particle.dy * dt) / 1000;
+      particle.y +=
+        ((particle.dy * dt) / 1000) *
+        (particle.lifetime / lavaParticleLifetime) *
+        1;
     }
   }
 
@@ -411,11 +414,15 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.save();
       ctx.translate(particle.x, -particle.y);
       ctx.scale(
-        (particle.lifetime * 0.2) / lavaParticleLifetime,
-        (particle.lifetime * 0.2) / lavaParticleLifetime,
+        (particle.lifetime * 0.25) / lavaParticleLifetime,
+        (particle.lifetime * 0.25) / lavaParticleLifetime,
       );
       const timeAlive = lavaParticleLifetime - particle.lifetime;
-      ctx.globalAlpha = timeAlive / fadeInTime;
+
+      ctx.globalAlpha = Math.min(
+        timeAlive / fadeInTime,
+        1 - timeAlive / lavaParticleLifetime,
+      );
       ctx.beginPath();
       ctx.arc(0, 0, gridSize / 2, 0, Math.PI * 2);
       ctx.fill();

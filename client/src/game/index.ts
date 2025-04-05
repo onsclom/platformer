@@ -108,6 +108,7 @@ function restartLevel(state: State) {
   playing.player.x = 0;
   playing.player.y = 0;
   playing.player.dy = 0;
+  playing.player.xMomentum = 0;
   playing.player.alive = true;
   playing.level.ephemeral = Level.createEphemeral();
 }
