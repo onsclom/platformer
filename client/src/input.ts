@@ -1,4 +1,4 @@
-// keyboard
+//keyboard
 export const keysDown = new Set<string>();
 export const justReleased = new Set<string>();
 export const justPressed = new Set<string>();
@@ -18,14 +18,14 @@ export function clearInputs() {
 }
 
 document.addEventListener("keydown", (event) => {
-  if (keysDown.has(event.key)) return;
-  keysDown.add(event.key);
-  justPressed.add(event.key);
+  if (keysDown.has(event.code)) return;
+  keysDown.add(event.code);
+  justPressed.add(event.code);
 });
 
 document.addEventListener("keyup", (event) => {
-  keysDown.delete(event.key);
-  justReleased.add(event.key);
+  keysDown.delete(event.code);
+  justReleased.add(event.code);
 });
 
 document.addEventListener("pointermove", (event) => {

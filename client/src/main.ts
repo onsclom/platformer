@@ -6,7 +6,7 @@ let canvas = document.querySelector("canvas");
 
 let previousTime = performance.now();
 let timeToProcess = 0;
-const LOG_FRAME_TIMES = true;
+const LOG_FRAME_TIMES = false;
 
 let curUpdate = update;
 let curDraw = draw;

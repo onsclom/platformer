@@ -1,8 +1,8 @@
 import { animate } from "../animate";
-import { playSound } from "../audio";
+import { playSound, stopSound } from "../audio";
 import { justPressed, keysDown } from "../input";
 import { Camera } from "./camera";
-import { circleVsRect } from "./collision";
+import { circleVsRect, rectVsRectCollision } from "./collision";
 import { cannonBallRadius, Level, timeSpentOnPhase } from "./level";
 import {
   jumpBufferTime,
@@ -38,40 +38,53 @@ export function update(state: State, dt: number) {
     state.camera.y = state.player.y;
   }
 
-  let walking = false;
   const intervalAOn = Boolean(
     Math.floor(performance.now() / timeSpentOnPhase) % 2,
   );
   const solidTiles = state.level.static.tiles.filter((tile) => {
     if (tile.type === "solid") return true;
-    if (tile.type === "intervalBlock") {
+    if (tile.type === "interval") {
       const shouldBeOnBasedOnTime = intervalAOn === (tile.start === "on");
       return (
         shouldBeOnBasedOnTime &&
-        state.level.ephemeral.intervalBlocksOnLastTick.has(
-          `${tile.x},${tile.y}`,
-        )
+        state.level.ephemeral.intervalOnLastFrame.has(`${tile.x},${tile.y}`)
       );
     }
     return false;
   });
 
   if (state.player.alive) {
-    walking = moveAndSlidePlayer(state, dt, solidTiles);
-  }
+    const { walking, wallSliding, wallSlidedir } = moveAndSlidePlayer(
+      state,
+      dt,
+      solidTiles,
+    );
 
-  updateIntervalBlocksOnLastFrame(state.level, state.player);
+    updateIntervalBlocksOnLastFrame(state.level, state.player);
 
-  Player.update(state.player, dt);
-  if (walking) {
-    state.player.particles.spawnTimer += dt;
-    while (
-      state.player.particles.spawnTimer >
-      1000 / playerParticleSpawnRateWhileWalking
-    ) {
-      state.player.particles.spawnTimer -=
-        1000 / playerParticleSpawnRateWhileWalking;
-      Player.spawnParticle(state.player);
+    Player.update(state.player, dt);
+    if (walking) {
+      state.player.particles.spawnTimer += dt;
+      while (
+        state.player.particles.spawnTimer >
+        1000 / playerParticleSpawnRateWhileWalking
+      ) {
+        state.player.particles.spawnTimer -=
+          1000 / playerParticleSpawnRateWhileWalking;
+        Player.spawnParticle(state.player);
+      }
+    }
+
+    if (wallSliding) {
+      state.player.particles.spawnTimer += dt;
+      while (
+        state.player.particles.spawnTimer >
+        1000 / playerParticleSpawnRateWhileWalking
+      ) {
+        state.player.particles.spawnTimer -=
+          1000 / playerParticleSpawnRateWhileWalking;
+        Player.spawnParticle(state.player, 0, wallSlidedir);
+      }
     }
   }
 
@@ -159,29 +172,29 @@ export function updateIntervalBlocksOnLastFrame(
     Math.floor(performance.now() / timeSpentOnPhase) % 2,
   );
   for (const tile of level.static.tiles) {
-    if (tile.type !== "intervalBlock") continue;
+    if (tile.type !== "interval") continue;
     const shouldBeOnBasedOnTime = intervalAOn === (tile.start === "on");
     if (shouldBeOnBasedOnTime) {
       if (!player) {
-        level.ephemeral.intervalBlocksOnLastTick.add(`${tile.x},${tile.y}`);
+        level.ephemeral.intervalOnLastFrame.add(`${tile.x},${tile.y}`);
         continue;
       }
-      const touchingPlayerX =
-        Math.abs(player.x - tile.x) < playerWidth * 0.5 + tileSize * 0.5;
-      const touchingPlayerY =
-        Math.abs(player.y - tile.y) < playerHeight * 0.5 + tileSize * 0.5;
-      const touching = touchingPlayerX && touchingPlayerY;
-      const playerOnTile =
-        Math.abs(player.y - playerHeight * 0.5 - (tile.y + tileSize * 0.5)) <
-        0.1;
-      if (!touching || playerOnTile) {
-        level.ephemeral.intervalBlocksOnLastTick.add(`${tile.x},${tile.y}`);
+
+      const playerTouchingInterval = rectVsRectCollision(
+        { x: player.x, y: player.y, width: playerWidth, height: playerHeight },
+        { x: tile.x, y: tile.y, width: tileSize, height: tileSize },
+      );
+
+      if (!playerTouchingInterval) {
+        level.ephemeral.intervalOnLastFrame.add(`${tile.x},${tile.y}`);
       }
     } else {
-      level.ephemeral.intervalBlocksOnLastTick.delete(`${tile.x},${tile.y}`);
+      level.ephemeral.intervalOnLastFrame.delete(`${tile.x},${tile.y}`);
     }
   }
 }
+
+// x and y are center
 
 function moveAndSlidePlayer(
   state: State,
@@ -191,7 +204,11 @@ function moveAndSlidePlayer(
     y: number;
   }[],
 ) {
-  if (!keysDown.has(" ") && !keysDown.has("w") && state.player.canHalveJump) {
+  if (
+    !keysDown.has("Space") &&
+    !keysDown.has("KeyW") &&
+    state.player.canHalveJump
+  ) {
     state.player.canHalveJump = false;
     if (state.player.dy > 0) {
       state.player.dy /= 2;
@@ -215,64 +232,69 @@ function moveAndSlidePlayer(
 
   // handle X-axis
   let pdx = 0;
-  if (keysDown.has("a")) pdx -= 1;
-  if (keysDown.has("d")) pdx += 1;
+  if (keysDown.has("KeyA")) pdx -= 1;
+  if (keysDown.has("KeyD")) pdx += 1;
   let dx = pdx;
   dx += state.player.xMomentum * (dt / 1000);
 
+  const extraRepel = 0.000001;
+
+  let wallSliding = false;
   state.camera.angle = animate(state.camera.angle, dx * 0.02, dt * 0.02);
   {
     state.player.x += dx * (dt / 1000) * speed;
     for (const tile of collidableTiles) {
       // collision
-      const tileTopLeft = {
-        x: tile.x - tileSize * 0.5,
-        y: tile.y + tileSize * 0.5,
-      };
-      const tileBottomRight = {
-        x: tileTopLeft.x + tileSize,
-        y: tileTopLeft.y - tileSize,
-      };
-      const playerBottomRight = {
-        x: state.player.x + playerWidth * 0.5,
-        y: state.player.y - playerHeight * 0.5,
-      };
-      const playerTopLeft = {
-        x: state.player.x - playerWidth * 0.5,
-        y: state.player.y + playerHeight * 0.5,
-      };
-      if (
-        playerBottomRight.x > tileTopLeft.x &&
-        playerBottomRight.y < tileTopLeft.y &&
-        playerTopLeft.x < tileBottomRight.x &&
-        playerTopLeft.y > tileBottomRight.y
-      ) {
-        const yOverlap = Math.min(
-          Math.abs(playerBottomRight.y - tileTopLeft.y),
-          Math.abs(tileBottomRight.y - playerTopLeft.y),
-        );
-
+      const colliding = rectVsRectCollision(
+        {
+          x: state.player.x,
+          y: state.player.y,
+          width: playerWidth,
+          height: playerHeight,
+        },
+        {
+          x: tile.x,
+          y: tile.y,
+          width: tileSize,
+          height: tileSize,
+        },
+      );
+      if (colliding) {
+        // IS WALL SLIDING
         const wallSlidingMaxSpeed = 4;
-
-        if (yOverlap > 0.001) {
-          if (dx > 0) {
-            if (pdx == 1) {
-              state.player.timeSinceTouchedWall = 0;
-              state.player.wallJumpDir = 1;
+        if (dx > 0) {
+          if (pdx == 1) {
+            state.player.timeSinceTouchedWall = 0;
+            state.player.wallJumpDir = 1;
+            if (state.player.dy < -wallSlidingMaxSpeed) {
+              wallSliding = true;
               state.player.dy = Math.max(state.player.dy, -wallSlidingMaxSpeed);
             }
-            state.player.x = tileTopLeft.x - playerWidth * 0.5;
-          } else {
-            if (pdx == -1) {
-              state.player.timeSinceTouchedWall = 0;
-              state.player.wallJumpDir = -1;
-              state.player.dy = Math.max(state.player.dy, -wallSlidingMaxSpeed);
-            }
-            state.player.x = tileBottomRight.x + playerWidth * 0.5;
           }
+          state.player.x =
+            tile.x - tileSize * 0.5 - playerWidth * 0.5 - extraRepel;
+        } else if (dx < 0) {
+          if (pdx == -1) {
+            state.player.timeSinceTouchedWall = 0;
+            state.player.wallJumpDir = -1;
+            if (state.player.dy < -wallSlidingMaxSpeed) {
+              wallSliding = true;
+              state.player.dy = Math.max(state.player.dy, -wallSlidingMaxSpeed);
+            }
+          }
+          state.player.x =
+            tile.x + tileSize * 0.5 + playerWidth * 0.5 + extraRepel;
+        } else {
+          // moving platform otouching player??
         }
+        // }
       }
     }
+  }
+  if (wallSliding) {
+    playSound("slide");
+  } else {
+    stopSound("slide");
   }
 
   state.player.dy -= gravity * (dt / 1000);
@@ -282,31 +304,23 @@ function moveAndSlidePlayer(
   state.player.y += state.player.dy * (dt / 1000);
   {
     for (const tile of collidableTiles) {
-      // collision
-      const tileTopLeft = {
-        x: tile.x - tileSize * 0.5,
-        y: tile.y + tileSize * 0.5,
-      };
-      const tileBottomRight = {
-        x: tileTopLeft.x + tileSize,
-        y: tileTopLeft.y - tileSize,
-      };
-      const playerBottomRight = {
-        x: state.player.x + playerWidth * 0.5,
-        y: state.player.y - playerHeight * 0.5,
-      };
-      const playerTopLeft = {
-        x: state.player.x - playerWidth * 0.5,
-        y: state.player.y + playerHeight * 0.5,
-      };
-      if (
-        playerBottomRight.x > tileTopLeft.x &&
-        playerBottomRight.y < tileTopLeft.y &&
-        playerTopLeft.x < tileBottomRight.x &&
-        playerTopLeft.y > tileBottomRight.y
-      ) {
+      const colliding = rectVsRectCollision(
+        {
+          x: state.player.x,
+          y: state.player.y,
+          width: playerWidth,
+          height: playerHeight,
+        },
+        {
+          x: tile.x,
+          y: tile.y,
+          width: tileSize,
+          height: tileSize,
+        },
+      );
+      if (colliding) {
         // resolve against y
-        if (state.player.dy <= 0) {
+        if (state.player.dy < 0) {
           const landSoundThreshold = -5;
           if (state.player.dy < landSoundThreshold) {
             const landSquash = 0.25;
@@ -314,25 +328,29 @@ function moveAndSlidePlayer(
             state.player.yScale = 1 - landSquash;
             playSound("land");
 
-            const particleAmount = 20;
+            const particleAmount = 10;
             for (let i = 0; i < particleAmount; i++) {
               Player.spawnParticle(state.player, 1.5);
             }
           }
-          state.player.y = tileTopLeft.y + playerHeight * 0.5;
+          state.player.y =
+            tile.y + tileSize * 0.5 + playerHeight * 0.5 + extraRepel;
           state.player.dy = 0;
           state.player.timeSinceGrounded = 0;
           state.player.canHalveJump = false;
-        } else {
-          state.player.y = tileBottomRight.y - playerHeight * 0.5;
+        } else if (state.player.dy > 0) {
+          state.player.y =
+            tile.y - tileSize * 0.5 - playerHeight * 0.5 - extraRepel;
           state.player.dy = 0;
+        } else {
+          // moving platform touching player??
         }
       }
     }
   }
 
   state.player.timeSinceJumpBuffered += dt;
-  if (justPressed.has(" ") || justPressed.has("w")) {
+  if (justPressed.has("Space") || justPressed.has("KeyW")) {
     state.player.timeSinceJumpBuffered = 0;
   }
 
@@ -342,7 +360,7 @@ function moveAndSlidePlayer(
   ) {
     playerJump(state.player);
 
-    const particleAmount = 20;
+    const particleAmount = 10;
     for (let i = 0; i < particleAmount; i++) {
       Player.spawnParticle(state.player, 1.5);
     }
@@ -357,13 +375,17 @@ function moveAndSlidePlayer(
     state.player.xMomentum = -state.player.wallJumpDir * wallJumpMomentum;
 
     // TODO: sideways particles?
-    // const particleAmount = 20;
-    // for (let i = 0; i < particleAmount; i++) {
-    //   Player.spawnParticle(state.player, 1.5);
-    // }
+    const particleAmount = 10;
+    for (let i = 0; i < particleAmount; i++) {
+      Player.spawnParticle(state.player, 1.5, state.player.wallJumpDir);
+    }
   }
 
-  return Math.abs(dx) > 0 && state.player.timeSinceGrounded === 0;
+  return {
+    walking: Math.abs(dx) > 0 && state.player.timeSinceGrounded === 0,
+    wallSliding: wallSliding,
+    wallSlidedir: state.player.wallJumpDir,
+  };
 }
 
 function playerJump(player: State["player"]) {

@@ -24,7 +24,7 @@ export function create() {
 }
 
 export function update(state: State, dt: number) {
-  if (justPressed.has("r")) {
+  if (justPressed.has("KeyR")) {
     state.sceneData.playing.level = state.sceneData.editor.level;
     state.curScene = "playing";
     restartLevel(state);

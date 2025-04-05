@@ -12,7 +12,7 @@ export const playerHeight = 0.8;
 
 const maxPlayerParticles = 1000;
 
-export const playerParticleSpawnRateWhileWalking = 30;
+export const playerParticleSpawnRateWhileWalking = 15;
 const playerParticleLifetime = 500;
 const fadeInTime = 50;
 
@@ -109,14 +109,14 @@ function draw(
     ctx.restore();
   }
 
-  ctx.fillStyle = "#bbb";
+  ctx.fillStyle = "#333";
   for (const particle of state.particles.instances) {
     if (particle.lifetime > 0) {
       ctx.save();
       ctx.translate(particle.x, -particle.y);
       ctx.scale(
-        (particle.lifetime * 0.2) / playerParticleLifetime,
-        (particle.lifetime * 0.2) / playerParticleLifetime,
+        (particle.lifetime * 0.4) / playerParticleLifetime,
+        (particle.lifetime * 0.4) / playerParticleLifetime,
       );
 
       const timeAlive = playerParticleLifetime - particle.lifetime;
@@ -130,14 +130,25 @@ function draw(
   }
 }
 
-function spawnParticle(player: State, agitationFactor: number = 1) {
+function spawnParticle(player: State, agitationFactor = 0, onSide?: number) {
   const particle = player.particles.instances[player.particles.nextParticle]!;
 
   particle.lifetime = playerParticleLifetime;
 
-  particle.x = player.x + (Math.random() - 0.5) * playerWidth;
-  particle.y =
-    player.y - playerHeight * 0.5 + (Math.random() - 0.5) * playerHeight * 0.25;
+  if (onSide === undefined) {
+    particle.x = player.x + (Math.random() - 0.5) * playerWidth;
+    particle.y =
+      player.y -
+      playerHeight * 0.5 +
+      (Math.random() - 0.5) * playerHeight * 0.25;
+  } else {
+    particle.x =
+      player.x +
+      onSide * playerWidth * 0.5 +
+      (Math.random() - 0.5) * playerHeight * 0.25;
+    particle.y =
+      player.y - playerHeight * 0.5 + (Math.random() - 0.5) * playerHeight;
+  }
 
   particle.dx = (Math.random() - 0.5) * agitationFactor;
   particle.dy = (Math.random() - 0.5) * agitationFactor;

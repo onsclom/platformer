@@ -34,4 +34,13 @@ export function circleVsRect(
   return dist <= circle.radius;
 }
 
-// TODO: refactor rect vs rect collision code to here
+export function rectVsRectCollision(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+) {
+  const xDiff = Math.abs(a.x - b.x);
+  const yDiff = Math.abs(a.y - b.y);
+  return (
+    xDiff < (a.width + b.width) * 0.5 && yDiff < (a.height + b.height) * 0.5
+  );
+}

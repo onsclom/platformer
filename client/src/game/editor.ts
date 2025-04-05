@@ -27,11 +27,11 @@ type State = ReturnType<typeof create>;
 
 export function update(state: State, dt: number) {
   const hotkeyToPlacingType: Record<string, Tile["type"]> = {
-    "1": "solid",
-    "2": "lava",
-    "3": "cannon",
-    "4": "trampoline",
-    "5": "intervalBlock",
+    Digit1: "solid",
+    Digit2: "lava",
+    Digit3: "cannon",
+    Digit4: "trampoline",
+    Digit5: "interval",
   };
 
   for (const [hotkey, placingType] of Object.entries(hotkeyToPlacingType)) {
@@ -92,15 +92,15 @@ export function update(state: State, dt: number) {
           });
         }
       }
-    } else if (state.placingType === "intervalBlock") {
-      if (existingTile?.type === "intervalBlock" && justLeftClicked) {
+    } else if (state.placingType === "interval") {
+      if (existingTile?.type === "interval" && justLeftClicked) {
         posToTileMap.set(`${state.hoveredTile.x},${state.hoveredTile.y}`, {
           type: state.placingType,
           x: state.hoveredTile.x,
           y: state.hoveredTile.y,
           start: existingTile.start === "on" ? "off" : "on",
         });
-      } else if (existingTile?.type !== "intervalBlock") {
+      } else if (existingTile?.type !== "interval") {
         posToTileMap.set(`${state.hoveredTile.x},${state.hoveredTile.y}`, {
           type: state.placingType,
           x: state.hoveredTile.x,
@@ -121,26 +121,26 @@ export function update(state: State, dt: number) {
   // CAMERA CONTROLS
   //////////////////
 
-  if (keysDown.has("-")) {
+  if (keysDown.has("Minus")) {
     state.camera.width *= 1 + dt * 0.001;
     state.camera.height *= 1 + dt * 0.001;
   }
-  if (keysDown.has("=")) {
+  if (keysDown.has("Equal")) {
     state.camera.width *= 1 - dt * 0.001;
     state.camera.height *= 1 - dt * 0.001;
   }
 
   const panSpeed = 0.016;
-  if (keysDown.has("w")) {
+  if (keysDown.has("KeyW")) {
     state.camera.y += dt * panSpeed;
   }
-  if (keysDown.has("s")) {
+  if (keysDown.has("KeyS")) {
     state.camera.y -= dt * panSpeed;
   }
-  if (keysDown.has("a")) {
+  if (keysDown.has("KeyA")) {
     state.camera.x -= dt * panSpeed;
   }
-  if (keysDown.has("d")) {
+  if (keysDown.has("KeyD")) {
     state.camera.x += dt * panSpeed;
   }
 
@@ -155,7 +155,7 @@ export function update(state: State, dt: number) {
 
   updateIntervalBlocksOnLastFrame(state.level);
 
-  if (justPressed.has("l")) {
+  if (justPressed.has("KeyL")) {
     // copy level to clipboard
     const level = {
       static: state.level.static,
@@ -167,7 +167,7 @@ export function update(state: State, dt: number) {
   }
 
   // upload level to server!
-  if (justPressed.has("u")) {
+  if (justPressed.has("KeyU")) {
     client.level.create
       .post(JSON.stringify({ static: state.level.static }))
       .then((uuid) => {

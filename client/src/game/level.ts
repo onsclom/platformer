@@ -37,7 +37,7 @@ export type Tile = {
       dir: "up" | "down" | "left" | "right";
     }
   | { type: "trampoline" }
-  | { type: "intervalBlock"; start: "on" | "off" }
+  | { type: "interval"; start: "on" | "off" }
 );
 
 function createEphemeral() {
@@ -74,7 +74,7 @@ function createEphemeral() {
       spawnTimer: 0,
     },
     trampolinesTouched: new Map<string, number>(),
-    intervalBlocksOnLastTick: new Set<string>(),
+    intervalOnLastFrame: new Set<string>(),
 
     background: {
       tiles: [] as { x: number; y: number }[],
@@ -133,7 +133,6 @@ export function update(state: State, dt: number) {
         return { x, y };
       },
     );
-    console.log("background tiles", background.size);
   }
 
   // update lava particles
@@ -311,9 +310,9 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       ctx.restore();
 
       ctx.restore();
-    } else if (tile.type === "intervalBlock") {
+    } else if (tile.type === "interval") {
       const shouldBeOnBasedOnTime = intervalAOn === (tile.start === "on");
-      const wasOnLastFrame = level.ephemeral.intervalBlocksOnLastTick.has(
+      const wasOnLastFrame = level.ephemeral.intervalOnLastFrame.has(
         `${tile.x},${tile.y}`,
       );
       const isOn = shouldBeOnBasedOnTime && wasOnLastFrame;
