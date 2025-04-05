@@ -109,7 +109,7 @@ function draw(
     ctx.restore();
   }
 
-  ctx.fillStyle = "#333";
+  ctx.fillStyle = "gray";
   for (const particle of state.particles.instances) {
     if (particle.lifetime > 0) {
       ctx.save();
@@ -120,7 +120,10 @@ function draw(
       );
 
       const timeAlive = playerParticleLifetime - particle.lifetime;
-      ctx.globalAlpha = (timeAlive / fadeInTime) ** 2;
+      ctx.globalAlpha = Math.min(
+        (timeAlive / fadeInTime) ** 2,
+        1 - timeAlive / playerParticleLifetime,
+      );
 
       ctx.beginPath();
       ctx.arc(0, 0, 0.5, 0, Math.PI * 2);

@@ -393,7 +393,7 @@ function moveAndSlidePlayer(
 }
 
 function playerJump(player: State["player"]) {
-  if (player.dy <= 0) {
+  if (player.dy <= jumpStrength / 2) {
     playSound("jump");
   }
 

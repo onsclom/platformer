@@ -16,6 +16,9 @@ const fadeInTime = 20;
 const maxExplosionParticles = 1000;
 const explosionParticleLifetime = 1000;
 
+const maxCannonballTrailParticles = 1000;
+const cannonBallTrailParticleLifetime = 500;
+
 const maxCannonBalls = 500;
 const cannonSpawnHz = 1;
 
@@ -74,12 +77,20 @@ function createEphemeral() {
       nextBall: 0,
       spawnTimer: 0,
     },
+    cannonBallTrailParticles: {
+      instances: Array.from({ length: maxCannonballTrailParticles }, () => ({
+        lifetime: 0,
+        x: 0,
+        y: 0,
+        dx: 0,
+        dy: 0,
+      })),
+      nextParticle: 0,
+      spawnTimer: 0,
+    },
     trampolinesTouched: new Map<string, number>(),
     intervalOnLastFrame: new Set<string>(),
-
-    background: {
-      tiles: [] as { x: number; y: number }[],
-    },
+    background: { tiles: [] as { x: number; y: number }[] },
   };
 }
 
@@ -220,6 +231,40 @@ export function update(state: State, dt: number) {
       playSound("shoot");
     }
   }
+
+  // update cannon ball trail particles
+  state.ephemeral.cannonBallTrailParticles.spawnTimer += dt;
+  const cannonBallTrailParticleSpawnHz = 1000 / 20;
+  while (
+    state.ephemeral.cannonBallTrailParticles.spawnTimer >
+    1000 / cannonBallTrailParticleSpawnHz
+  ) {
+    state.ephemeral.cannonBallTrailParticles.spawnTimer -=
+      cannonBallTrailParticleSpawnHz;
+    for (const ball of state.ephemeral.cannonBalls.instances) {
+      if (ball.dx === 0 && ball.dy === 0) continue; // not active
+      const particle =
+        state.ephemeral.cannonBallTrailParticles.instances[
+          state.ephemeral.cannonBallTrailParticles.nextParticle
+        ]!;
+      particle.lifetime = cannonBallTrailParticleLifetime;
+      particle.x = ball.x;
+      particle.y = ball.y;
+      particle.dx = (Math.random() - 0.5) * 1;
+      particle.dy = (Math.random() - 0.5) * 1;
+      state.ephemeral.cannonBallTrailParticles.nextParticle =
+        (state.ephemeral.cannonBallTrailParticles.nextParticle + 1) %
+        maxCannonballTrailParticles;
+    }
+  }
+  for (const particle of state.ephemeral.cannonBallTrailParticles.instances) {
+    if (particle.lifetime > 0) {
+      particle.lifetime -= dt;
+      particle.x += (particle.dx * dt) / 1000;
+      particle.y += (particle.dy * dt) / 1000;
+    }
+  }
+
   let shouldPlayExplodeSound = false;
   // check if colliding with solid tiles
   const solidTiles = state.static.tiles.filter((tile) => tile.type === "solid");
@@ -271,7 +316,6 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
     Math.floor(performance.now() / timeSpentOnPhase) % 2,
   );
   const progress = (performance.now() % timeSpentOnPhase) / timeSpentOnPhase;
-  console.log(progress);
   for (const tile of level.static.tiles) {
     ctx.save();
     ctx.translate(tile.x * gridSize, -tile.y * gridSize);
@@ -372,9 +416,33 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
     ctx.restore();
   }
 
+  // draw cannon ball trails
+  ctx.fillStyle = "gray";
+  for (const particle of level.ephemeral.cannonBallTrailParticles.instances) {
+    if (particle.lifetime > 0) {
+      ctx.save();
+      ctx.translate(particle.x, -particle.y);
+      ctx.scale(
+        (particle.lifetime * cannonBallRadius) /
+          cannonBallTrailParticleLifetime,
+        (particle.lifetime * cannonBallRadius) /
+          cannonBallTrailParticleLifetime,
+      );
+      const timeAlive = cannonBallTrailParticleLifetime - particle.lifetime;
+      ctx.globalAlpha = Math.min(
+        timeAlive / fadeInTime,
+        1 - timeAlive / cannonBallTrailParticleLifetime,
+      );
+      ctx.beginPath();
+      ctx.arc(0, 0, 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
   // draw explosion particles
   ctx.fillStyle = "gray";
-  const explosionParticleRadius = cannonBallRadius;
+  const explosionParticleRadius = cannonBallRadius * 1.5;
   for (const particle of level.ephemeral.explosionParticles.instances) {
     if (particle.lifetime > 0) {
       ctx.save();
@@ -385,6 +453,7 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
         (particle.lifetime * explosionParticleRadius) /
           explosionParticleLifetime,
       );
+      ctx.globalAlpha = (particle.lifetime / explosionParticleLifetime) ** 2;
       ctx.beginPath();
       ctx.arc(0, 0, 1, 0, Math.PI * 2);
       ctx.fill();
