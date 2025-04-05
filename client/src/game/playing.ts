@@ -15,11 +15,14 @@ import {
 type State = ReturnType<typeof create>;
 
 const tileSize = 1;
-const gravity = 60;
-const jumpStrength = 25;
-const speed = 8;
+
+const gameSpeed = 0.9;
+
+const gravity = 60 * gameSpeed;
+const jumpStrength = 25 * gameSpeed;
+export const playerSpeed = 10 * gameSpeed;
+const maxFallSpeed = 25 * gameSpeed;
 const coyoteTime = 75;
-const maxFallSpeed = 20;
 
 export function create() {
   return {
@@ -109,8 +112,9 @@ export function update(state: State, dt: number) {
   for (const ball of state.level.ephemeral.cannonBalls.instances) {
     if (ball.dx === 0 && ball.dy === 0) continue; // inactive cannonball
 
+    const leniency = 0.2;
     const colliding = circleVsRect(
-      { cx: ball.x, cy: ball.y, radius: cannonBallRadius },
+      { cx: ball.x, cy: ball.y, radius: cannonBallRadius - leniency },
       {
         cx: state.player.x,
         cy: state.player.y,
@@ -242,7 +246,7 @@ function moveAndSlidePlayer(
   let wallSliding = false;
   state.camera.angle = animate(state.camera.angle, dx * 0.02, dt * 0.02);
   {
-    state.player.x += dx * (dt / 1000) * speed;
+    state.player.x += dx * (dt / 1000) * playerSpeed;
     for (const tile of collidableTiles) {
       // collision
       const colliding = rectVsRectCollision(

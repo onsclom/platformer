@@ -1,6 +1,7 @@
 import { assert } from "../assert";
 import { playSound } from "../audio";
-import defaultLevel from "./saved-levels/default";
+import { playerSpeed } from "./playing";
+import defaultLevel from "./saved-levels/HARD";
 import { gridSize } from "./top-level-constants";
 import { createNoise3D } from "simplex-noise";
 const noise3D = createNoise3D();
@@ -16,7 +17,7 @@ const maxExplosionParticles = 1000;
 const explosionParticleLifetime = 1000;
 
 const maxCannonBalls = 500;
-const cannonSpawnHz = 0.5;
+const cannonSpawnHz = 1;
 
 export const lineWidth = 0.1;
 
@@ -24,7 +25,7 @@ export const cannonBallRadius = (gridSize / 2) * 0.9;
 
 export const timeToRespawnJumpToken = 1000;
 
-export const timeSpentOnPhase = 1000;
+export const timeSpentOnPhase = 1000 * (4 / 3);
 
 export type Tile = {
   x: number;
@@ -96,7 +97,7 @@ const spawn = {
   x: 0,
   y: 0,
 };
-const backgroundLimit = 10000;
+const backgroundLimit = 5000;
 
 export function update(state: State, dt: number) {
   if (state.ephemeral.background.tiles.length === 0) {
@@ -193,7 +194,7 @@ export function update(state: State, dt: number) {
         ball.y = tile.y;
         ball.dx = 0;
         ball.dy = 0;
-        const cannonBallSpeed = 8;
+        const cannonBallSpeed = playerSpeed;
         switch (tile.dir) {
           case "up":
             ball.dy = cannonBallSpeed;
@@ -250,6 +251,16 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
     ctx.save();
     ctx.translate(tile.x * gridSize, -tile.y * gridSize);
     drawStaticTile(ctx);
+    ctx.restore();
+  }
+
+  ctx.fillStyle = "#bbb";
+  ctx.lineWidth = 0.001;
+  for (const tile of level.ephemeral.background.tiles) {
+    ctx.save();
+    ctx.translate(tile.x * gridSize, -tile.y * gridSize);
+    // drawStaticTile(ctx);
+    ctx.strokeRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
     ctx.restore();
   }
 
