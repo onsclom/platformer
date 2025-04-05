@@ -1,7 +1,6 @@
 import { assert } from "../assert";
 import { playSound } from "../audio";
 import { circleVsRect } from "./collision";
-import { playerHeight, playerWidth } from "./player";
 import { playerSpeed, tileSize } from "./playing";
 import defaultLevel from "./saved-levels/HARD";
 import { gridSize } from "./top-level-constants";
@@ -30,7 +29,7 @@ const turretBulletSpawnHz = 1;
 export const lineWidth = 0.1;
 
 export const cannonBallRadius = (gridSize / 2) * 0.9;
-export const turretBulletRadius = (gridSize / 2) * 0.3;
+export const turretBulletRadius = (gridSize / 2) * 0.4;
 
 export const timeToRespawnJumpToken = 1000;
 
@@ -480,16 +479,33 @@ export function draw(
       const angleToPlayer = Math.atan2(tile.y - player.y, tile.x - player.x);
 
       // draw line from center towards player
-      ctx.save();
       ctx.fillStyle = "#f33";
       ctx.lineWidth = 0.1;
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(
-        (-Math.cos(angleToPlayer) * gridSize) / 2,
-        (Math.sin(angleToPlayer) * gridSize) / 2,
+        -Math.cos(angleToPlayer) * gridSize * 0.4,
+        Math.sin(angleToPlayer) * gridSize * 0.4,
       );
       ctx.stroke();
+
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      ctx.arc(0, 0, turretBulletRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      const nextBallProgress =
+        (level.ephemeral.turretBullets.spawnTimer / (1000 / cannonSpawnHz)) **
+        2;
+
+      ctx.save();
+      ctx.fillStyle = "#f33";
+      ctx.globalAlpha = 0.25;
+      ctx.scale(nextBallProgress, nextBallProgress); // scale to show the progress of the cannonball spawn
+      ctx.beginPath();
+      ctx.arc(0, 0, turretBulletRadius, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
     }
     ctx.restore();
