@@ -798,11 +798,11 @@ function drawCannon(
   ctx.restore();
 }
 
-const explosionAmount = 10;
+const explosionAmount = 5;
 function spawnCannonBallExplosion(level: State, x: number, y: number) {
   for (let i = 0; i < explosionAmount; i++) {
     const randAng = Math.random() * Math.PI * 2; // random angle for explosion
-    const randSpeed = Math.random();
+    const randSpeed = Math.random() * 2;
     level.ephemeral.explosionParticles.instances[
       level.ephemeral.explosionParticles.nextParticle
     ] = {

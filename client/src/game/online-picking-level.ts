@@ -49,4 +49,4 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
   }
 }
 
-export const PickingLevel = { create, update, draw };
+export const OnlineLevelPicker = { create, update, draw };

@@ -6,7 +6,7 @@ import {
 } from "../input";
 import { Editor } from "./editor";
 import { Playing } from "./playing";
-import { fontSize, PickingLevel } from "./picking-level";
+import { fontSize, OnlineLevelPicker } from "./online-picking-level";
 import { client } from "../server";
 import { Level } from "./level";
 
@@ -18,7 +18,7 @@ export function create() {
     sceneData: {
       editor: Editor.create(),
       playing: Playing.create(),
-      pickingLevel: PickingLevel.create(),
+      pickingLevel: OnlineLevelPicker.create(),
     },
   };
 }
@@ -46,6 +46,7 @@ export function update(state: State, dt: number) {
         state.sceneData.playing.camera.width;
       state.sceneData.editor.camera.height =
         state.sceneData.playing.camera.height;
+      state.sceneData.editor.level = state.sceneData.playing.level;
     }
   }
 
@@ -71,7 +72,7 @@ export function update(state: State, dt: number) {
   } else if (state.curScene === "playing") {
     Playing.update(state.sceneData.playing, dt);
   } else if (state.curScene === "pickingLevel") {
-    PickingLevel.update(state.sceneData.pickingLevel, dt);
+    OnlineLevelPicker.update(state.sceneData.pickingLevel, dt);
     const levels = state.sceneData.pickingLevel.levels;
     if (justLeftClicked && pointerPos && levels.state === "loaded") {
       const levelIndex = Math.floor(pointerPos.y / fontSize);
@@ -99,7 +100,7 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
   } else if (state.curScene === "playing") {
     Playing.draw(state.sceneData.playing, ctx);
   } else if (state.curScene === "pickingLevel") {
-    PickingLevel.draw(state.sceneData.pickingLevel, ctx);
+    OnlineLevelPicker.draw(state.sceneData.pickingLevel, ctx);
   }
 }
 
