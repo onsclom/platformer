@@ -66,7 +66,6 @@ export function playSound(sound: keyof typeof audio) {
 }
 
 export function stopSound(sound: keyof typeof audio) {
-  console.log(`Stopping sound: ${sound}`);
   if (playingSounds[sound]) {
     playingSounds[sound].stop();
     delete playingSounds[sound];

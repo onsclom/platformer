@@ -267,6 +267,8 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
   const intervalAOn = Boolean(
     Math.floor(performance.now() / timeSpentOnPhase) % 2,
   );
+  const progress = (performance.now() % timeSpentOnPhase) / timeSpentOnPhase;
+  console.log(progress);
   for (const tile of level.static.tiles) {
     ctx.save();
     ctx.translate(tile.x * gridSize, -tile.y * gridSize);
@@ -330,6 +332,19 @@ export function draw(level: State, ctx: CanvasRenderingContext2D) {
       if (!isOn) ctx.globalAlpha = 0.25;
       ctx.fillStyle = "#f3f";
       drawStaticTile(ctx);
+
+      // draw radial progress
+      ctx.globalAlpha = 0.25;
+      ctx.save();
+      ctx.fillStyle = "black";
+      ctx.beginPath();
+      ctx.scale(-1, 1);
+      ctx.rotate(-Math.PI * 0.5);
+      ctx.arc(0, 0, gridSize * 0.25, 0, Math.PI * 2 * (1 - progress));
+      ctx.lineTo(0, 0);
+      ctx.fill();
+
+      ctx.restore();
       ctx.globalAlpha = 1;
     }
     ctx.restore();
