@@ -106,7 +106,7 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
 function restartLevel(state: State) {
   const playing = state.sceneData.playing;
   playing.player.x = 0;
-  playing.player.y = 0;
+  playing.player.y = 1;
   playing.player.dy = 0;
   playing.player.xMomentum = 0;
   playing.player.alive = true;
