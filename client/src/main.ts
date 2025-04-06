@@ -64,41 +64,43 @@ function raf() {
 
     curDraw(globalState, ctx);
 
-    const fontSize = 30;
-
-    ctx.save();
-    ctx.translate(1.5, 1.5);
-    ctx.fillStyle = "black";
-    ctx.font = `${fontSize}px Arial`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    ctx.fillText(
-      `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`,
-      10,
-      10,
-    );
-    ctx.fillText(
-      `frame time: ${Math.round(performance.now() - frameStart)}ms`,
-      10,
-      10 + fontSize,
-    );
-    ctx.restore();
-    ctx.save();
-    ctx.fillStyle = "white";
-    ctx.font = `${fontSize}px Arial`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    ctx.fillText(
-      `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`,
-      10,
-      10,
-    );
-    ctx.fillText(
-      `frame time: ${Math.round(performance.now() - frameStart)}ms`,
-      10,
-      10 + fontSize,
-    );
-    ctx.restore();
+    const LOG_FPS = false;
+    if (LOG_FPS) {
+      const fontSize = 30;
+      ctx.save();
+      ctx.translate(1.5, 1.5);
+      ctx.fillStyle = "black";
+      ctx.font = `${fontSize}px Arial`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(
+        `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`,
+        10,
+        10,
+      );
+      ctx.fillText(
+        `frame time: ${Math.round(performance.now() - frameStart)}ms`,
+        10,
+        10 + fontSize,
+      );
+      ctx.restore();
+      ctx.save();
+      ctx.fillStyle = "white";
+      ctx.font = `${fontSize}px Arial`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(
+        `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`,
+        10,
+        10,
+      );
+      ctx.fillText(
+        `frame time: ${Math.round(performance.now() - frameStart)}ms`,
+        10,
+        10 + fontSize,
+      );
+      ctx.restore();
+    }
   }
   if (LOG_FRAME_TIMES) console.timeEnd("frame");
 }

@@ -45,3 +45,26 @@
 ---
 
 - different sound for tramps
+
+RELEASE single player mode!
+
+lets describe the user experience:
+
+- go to link
+- you see levels
+  - they are left to right
+  - starts with tutorial
+  - beating levels unlocks the levels to the right
+  - stretch goals:
+    - level select shows best time per level
+    - once you beat all levels, you see total leveltime
+    - level select, should track and show lifetime stats
+
+- upon selecting level
+  - nice transition?
+  - good death animations
+  - r to retry still probly
+  - upon level completion, show fun stat screen
+    - time to beat level
+    - deaths
+    - press a button to go to level select?

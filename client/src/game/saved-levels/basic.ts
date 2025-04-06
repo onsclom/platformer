@@ -5,5 +5,5 @@ export default {
       { type: "solid", x: 0, y: -1 },
       { type: "solid", x: 1, y: -1 },
     ],
-  },
+  } as const,
 };

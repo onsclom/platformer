@@ -19,6 +19,7 @@ const fadeInTime = 50;
 function create() {
   return {
     alive: true,
+    timeSinceDead: 0,
 
     x: 0,
     y: 0,

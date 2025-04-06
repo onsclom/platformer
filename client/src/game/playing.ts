@@ -66,6 +66,7 @@ export function update(state: State, dt: number) {
     updateIntervalBlocksOnLastFrame(state.level, state.player);
 
     Player.update(state.player, dt);
+
     if (walking) {
       state.player.particles.spawnTimer += dt;
       while (
@@ -89,6 +90,12 @@ export function update(state: State, dt: number) {
         Player.spawnParticle(state.player, 0, wallSlidedir);
       }
     }
+  }
+
+  if (state.player.alive) {
+    state.player.timeSinceDead = 0;
+  } else {
+    state.player.timeSinceDead += dt;
   }
 
   for (const tile of state.level.static.tiles) {

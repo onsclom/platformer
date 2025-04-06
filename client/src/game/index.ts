@@ -37,7 +37,7 @@ export function update(state: State, dt: number) {
     restartLevel(state);
   }
 
-  if (justPressed.has("KeyE")) {
+  if (import.meta.env.DEV && justPressed.has("KeyE")) {
     if (state.curScene === "editor") {
       state.curScene = "playing";
       state.sceneData.playing.level = state.sceneData.editor.level;
@@ -59,18 +59,8 @@ export function update(state: State, dt: number) {
 
   if (justPressed.has("KeyO")) {
     state.curScene = "offlineLevelPicker";
-    const levels = client.levels.get();
-    levels
-      .then((data) => {
-        state.sceneData.onlineLevelPicker.levels = {
-          state: "loaded",
-          data: data.data!, // TODO: fix this case
-        };
-        restartLevel(state);
-      })
-      .catch((e) => {
-        console.error(e);
-      });
+    state.sceneData.OfflineLevelPicker.animatedLevelIndex =
+      state.sceneData.OfflineLevelPicker.levelIndex;
   }
 
   // if (justPressed.has("p")) {
@@ -93,6 +83,11 @@ export function update(state: State, dt: number) {
     Editor.update(state.sceneData.editor, dt);
   } else if (state.curScene === "playing") {
     Playing.update(state.sceneData.playing, dt);
+
+    const timeToResetAfterDeath = 1000;
+    if (state.sceneData.playing.player.timeSinceDead > timeToResetAfterDeath) {
+      restartLevel(state);
+    }
   } else if (state.curScene === "onlineLevelPicker") {
     OnlineLevelPicker.update(state.sceneData.onlineLevelPicker, dt);
     const levels = state.sceneData.onlineLevelPicker.levels;
