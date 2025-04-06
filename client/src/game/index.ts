@@ -9,18 +9,25 @@ import { Playing } from "./playing";
 import { fontSize, OnlineLevelPicker } from "./online-picking-level";
 import { client } from "../server";
 import { Level } from "./level";
+import { OfflineLevelPicker } from "./offline-level-picker";
 
 export type State = ReturnType<typeof create>;
 
 export function create() {
-  return {
-    curScene: "playing" as "editor" | "playing" | "pickingLevel",
+  const state = {
+    curScene: "offlineLevelPicker" as
+      | "editor"
+      | "playing"
+      | "onlineLevelPicker"
+      | "offlineLevelPicker",
     sceneData: {
       editor: Editor.create(),
       playing: Playing.create(),
-      pickingLevel: OnlineLevelPicker.create(),
+      onlineLevelPicker: OnlineLevelPicker.create(),
+      OfflineLevelPicker: OfflineLevelPicker.create(),
     },
   };
+  return state;
 }
 
 export function update(state: State, dt: number) {
@@ -30,7 +37,7 @@ export function update(state: State, dt: number) {
     restartLevel(state);
   }
 
-  if (justPressed.has("Enter") || justPressed.has("KeyE")) {
+  if (justPressed.has("KeyE")) {
     if (state.curScene === "editor") {
       state.curScene = "playing";
       state.sceneData.playing.level = state.sceneData.editor.level;
@@ -50,13 +57,12 @@ export function update(state: State, dt: number) {
     }
   }
 
-  // pick level!
-  if (justPressed.has("p")) {
-    state.curScene = "pickingLevel";
+  if (justPressed.has("KeyO")) {
+    state.curScene = "offlineLevelPicker";
     const levels = client.levels.get();
     levels
       .then((data) => {
-        state.sceneData.pickingLevel.levels = {
+        state.sceneData.onlineLevelPicker.levels = {
           state: "loaded",
           data: data.data!, // TODO: fix this case
         };
@@ -67,13 +73,29 @@ export function update(state: State, dt: number) {
       });
   }
 
+  // if (justPressed.has("p")) {
+  //   state.curScene = "onlineLevelPicker";
+  //   const levels = client.levels.get();
+  //   levels
+  //     .then((data) => {
+  //       state.sceneData.onlineLevelPicker.levels = {
+  //         state: "loaded",
+  //         data: data.data!, // TODO: fix this case
+  //       };
+  //       restartLevel(state);
+  //     })
+  //     .catch((e) => {
+  //       console.error(e);
+  //     });
+  // }
+
   if (state.curScene === "editor") {
     Editor.update(state.sceneData.editor, dt);
   } else if (state.curScene === "playing") {
     Playing.update(state.sceneData.playing, dt);
-  } else if (state.curScene === "pickingLevel") {
-    OnlineLevelPicker.update(state.sceneData.pickingLevel, dt);
-    const levels = state.sceneData.pickingLevel.levels;
+  } else if (state.curScene === "onlineLevelPicker") {
+    OnlineLevelPicker.update(state.sceneData.onlineLevelPicker, dt);
+    const levels = state.sceneData.onlineLevelPicker.levels;
     if (justLeftClicked && pointerPos && levels.state === "loaded") {
       const levelIndex = Math.floor(pointerPos.y / fontSize);
       const level = levels.data[levelIndex];
@@ -90,7 +112,10 @@ export function update(state: State, dt: number) {
           });
       }
     }
+  } else if (state.curScene === "offlineLevelPicker") {
+    OfflineLevelPicker.update(state.sceneData.OfflineLevelPicker, dt);
   }
+
   clearInputs();
 }
 
@@ -99,12 +124,14 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
     Editor.draw(state.sceneData.editor, ctx);
   } else if (state.curScene === "playing") {
     Playing.draw(state.sceneData.playing, ctx);
-  } else if (state.curScene === "pickingLevel") {
-    OnlineLevelPicker.draw(state.sceneData.pickingLevel, ctx);
+  } else if (state.curScene === "onlineLevelPicker") {
+    OnlineLevelPicker.draw(state.sceneData.onlineLevelPicker, ctx);
+  } else if (state.curScene === "offlineLevelPicker") {
+    OfflineLevelPicker.draw(state.sceneData.OfflineLevelPicker, ctx);
   }
 }
 
-function restartLevel(state: State) {
+export function restartLevel(state: State) {
   const playing = state.sceneData.playing;
   playing.player.x = 0;
   playing.player.y = 1;

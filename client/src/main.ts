@@ -10,7 +10,7 @@ const LOG_FRAME_TIMES = false;
 
 let curUpdate = update;
 let curDraw = draw;
-let state = create();
+export let globalState = create();
 
 if (!canvas) {
   canvas = document.createElement("canvas");
@@ -58,11 +58,11 @@ function raf() {
     while (timeToProcess > physicTickMs) {
       timeToProcess -= physicTickMs;
       const dt = physicTickMs;
-      curUpdate(state, dt);
+      curUpdate(globalState, dt);
       clearInputs();
     }
 
-    curDraw(state, ctx);
+    curDraw(globalState, ctx);
 
     const fontSize = 30;
 
@@ -108,9 +108,9 @@ if (import.meta.hot) {
     if (newModule) {
       curUpdate = newModule.update;
       curDraw = newModule.draw;
-      const oldState = state;
-      state = newModule.create();
-      Object.assign(state, oldState);
+      const oldState = globalState;
+      globalState = newModule.create();
+      Object.assign(globalState, oldState);
     }
   });
 }
