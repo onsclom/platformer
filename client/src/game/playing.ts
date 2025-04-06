@@ -1,6 +1,7 @@
 import { animate } from "../animate";
 import { playSound, stopSound } from "../audio";
 import { justPressed, keysDown } from "../input";
+import { globalState } from "../main";
 import { Camera } from "./camera";
 import { circleVsRect, rectVsRectCollision } from "./collision";
 import { cannonBallRadius, Level, timeSpentOnPhase } from "./level";
@@ -26,6 +27,9 @@ const coyoteTime = 75;
 
 export function create() {
   return {
+    won: false,
+    timeSinceWon: 0,
+
     camera: Camera.create(),
     level: Level.create(),
     player: Player.create(),
@@ -160,7 +164,7 @@ export function update(state: State, dt: number) {
     }
   }
 
-  // check if jump token colliding with player
+  // check if trampoline colliding with player
   const trampolines = state.level.static.tiles.filter(
     (tile) => tile.type === "trampoline",
   );
@@ -184,6 +188,32 @@ export function update(state: State, dt: number) {
       state.player.canHalveJump = false;
     }
   }
+
+  // check if player colliding with end
+  {
+    const xTouching =
+      Math.abs(state.player.x - state.level.static.end.x) <
+      playerWidth * 0.5 + tileSize * 0.5;
+    const yTouching =
+      Math.abs(state.player.y - state.level.static.end.y) <
+      playerHeight * 0.5 + tileSize * 0.5;
+    if (xTouching && yTouching && !state.won) {
+      state.camera.shakeFactor = 1;
+      state.won = true;
+    }
+  }
+
+  if (state.won) {
+    state.timeSinceWon += dt;
+  } else {
+    state.timeSinceWon = 0;
+  }
+
+  const timeSpentOnWin = 1000;
+  if (state.timeSinceWon > timeSpentOnWin) {
+    // go to level select screen
+    globalState.curScene = "offlineLevelPicker";
+  }
 }
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
@@ -192,6 +222,20 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
     Level.draw(state.level, ctx, state.player);
     Player.draw(state.player, ctx, state.camera);
   });
+
+  // draw win screen
+  const drawRect = ctx.canvas.getBoundingClientRect();
+  if (state.won) {
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, drawRect.width, drawRect.height);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "white";
+    ctx.font = "50px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("LEVEL COMPLETE", drawRect.width / 2, drawRect.height / 2);
+  }
 }
 
 export const Playing = { create, update, draw };

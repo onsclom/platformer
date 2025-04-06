@@ -1,5 +1,6 @@
 export default {
   static: {
+    end: { x: -39, y: 49 },
     tiles: [
       { type: "solid", x: -1, y: -1 },
       { type: "solid", x: 0, y: -1 },

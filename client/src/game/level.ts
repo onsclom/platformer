@@ -110,10 +110,15 @@ function createEphemeral() {
   };
 }
 
+type LevelStatic = {
+  tiles: Tile[];
+  end: { x: number; y: number };
+};
+
 function create() {
   return {
     // static: { tiles: [] as Tile[] },
-    static: defaultLevel.static as { tiles: Tile[] },
+    static: defaultLevel.static as LevelStatic,
 
     // stuff that doesn't need to be saved
     ephemeral: createEphemeral(),
@@ -374,22 +379,6 @@ export function draw(
     ctx.restore();
   }
 
-  // ctx.strokeStyle = "#bbb";
-  // ctx.fillStyle = "#bbb";
-  // ctx.lineWidth = 0.01;
-  // for (const tile of level.ephemeral.background.tiles) {
-  //   ctx.save();
-  //   ctx.translate(tile.x * gridSize, -tile.y * gridSize);
-  //   // // drawStaticTile(ctx);
-  //   ctx.strokeRect(-gridSize / 2, -gridSize / 2, gridSize, gridSize);
-
-  //   ctx.beginPath();
-  //   ctx.arc(0, 0, gridSize * 0.05, 0, Math.PI * 2);
-  //   ctx.fill();
-
-  //   ctx.restore();
-  // }
-
   const intervalAOn = Boolean(
     Math.floor(performance.now() / timeSpentOnPhase) % 2,
   );
@@ -510,6 +499,15 @@ export function draw(
     }
     ctx.restore();
   }
+
+  // draw end
+  ctx.fillStyle = "blue";
+  ctx.fillRect(
+    level.static.end.x * gridSize - gridSize / 2,
+    -level.static.end.y * gridSize - gridSize / 2,
+    gridSize,
+    gridSize,
+  );
 
   ctx.strokeStyle = "black";
   ctx.lineWidth = lineWidth;

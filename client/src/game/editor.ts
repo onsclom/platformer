@@ -19,20 +19,21 @@ export function create() {
     level: Level.create(),
     camera: Camera.create(),
     hoveredTile: null as { x: number; y: number } | null,
-    placingType: "solid" as Tile["type"],
+    placingType: "solid" as Tile["type"] | "end",
   };
   return state;
 }
 type State = ReturnType<typeof create>;
 
 export function update(state: State, dt: number) {
-  const hotkeyToPlacingType: Record<string, Tile["type"]> = {
+  const hotkeyToPlacingType: Record<string, Tile["type"] | "end"> = {
     Digit1: "solid",
     Digit2: "lava",
     Digit3: "cannon",
     Digit4: "trampoline",
     Digit5: "interval",
     Digit6: "turret",
+    Digit9: "end",
   };
 
   for (const [hotkey, placingType] of Object.entries(hotkeyToPlacingType)) {
@@ -109,6 +110,11 @@ export function update(state: State, dt: number) {
           start: "on",
         });
       }
+    } else if (state.placingType === "end") {
+      state.level.static.end = {
+        x: state.hoveredTile.x,
+        y: state.hoveredTile.y,
+      };
     } else {
       // remaining are simple cases
       posToTileMap.set(`${state.hoveredTile.x},${state.hoveredTile.y}`, {

@@ -67,4 +67,14 @@ lets describe the user experience:
   - upon level completion, show fun stat screen
     - time to beat level
     - deaths
-    - press a button to go to level select?
+    - press a button to go to level select
+
+---
+
+refactoring:
+- make a global "particle system"
+- improve the sound system
+  - automatically load sound assets
+  - warn if sound is not loaded
+  - maybe use jsfxr library instead of using .wav assets?
+  - make lots of placeholder sounds easier to use

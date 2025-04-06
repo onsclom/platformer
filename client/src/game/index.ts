@@ -134,4 +134,7 @@ export function restartLevel(state: State) {
   playing.player.xMomentum = 0;
   playing.player.alive = true;
   playing.level.ephemeral = Level.createEphemeral();
+
+  playing.won = false;
+  playing.timeSinceWon = 0;
 }
