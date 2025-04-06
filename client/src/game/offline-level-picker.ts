@@ -28,7 +28,7 @@ export function update(state: State, dt: number) {
   state.animatedLevelIndex = state.animatedLevelIndex = animate(
     state.animatedLevelIndex,
     state.levelIndex,
-    dt ** 2 * 0.005,
+    dt ** 2 * 0.01,
   );
 
   if (justPressed.has("KeyD") || justPressed.has("KeyS")) {

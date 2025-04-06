@@ -78,3 +78,7 @@ refactoring:
   - warn if sound is not loaded
   - maybe use jsfxr library instead of using .wav assets?
   - make lots of placeholder sounds easier to use
+
+---
+
+game feel & ui inspo https://kultisti.itch.io/frogfall

@@ -235,6 +235,16 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("LEVEL COMPLETE", drawRect.width / 2, drawRect.height / 2);
+  } else if (state.player.alive === false) {
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, drawRect.width, drawRect.height);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "white";
+    ctx.font = "50px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("YOU DIED", drawRect.width / 2, drawRect.height / 2);
   }
 }
 
