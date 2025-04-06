@@ -6,7 +6,8 @@ let canvas = document.querySelector("canvas");
 
 let previousTime = performance.now();
 let timeToProcess = 0;
-const LOG_FRAME_TIMES = false;
+
+const DRAW_FPS_INFO = false;
 
 let curUpdate = update;
 let curDraw = draw;
@@ -33,7 +34,6 @@ if (!canvas) {
 function raf() {
   assert(canvas);
   const frameStart = performance.now();
-  if (LOG_FRAME_TIMES) console.time("frame");
   {
     requestAnimationFrame(raf);
 
@@ -41,8 +41,10 @@ function raf() {
     const dt = now - previousTime;
     previousTime = now;
 
-    // if returning to tab after some time, ignore that
-    if (dt > 100) return;
+    // if returning to tab after some time, or some other weirdness, dt can be
+    // very big. let's just ignore these cases and wait for the next frame
+    const dtTooBig = dt > 100;
+    if (dtTooBig) return;
 
     const canvasRect = canvas.getBoundingClientRect();
     canvas.width = canvasRect.width * devicePixelRatio;
@@ -57,52 +59,32 @@ function raf() {
     const physicTickMs = 1000 / physicHz;
     while (timeToProcess > physicTickMs) {
       timeToProcess -= physicTickMs;
-      const dt = physicTickMs;
-      curUpdate(globalState, dt);
+      curUpdate(globalState, physicTickMs);
       clearInputs();
     }
-
     curDraw(globalState, ctx);
 
-    const LOG_FPS = false;
-    if (LOG_FPS) {
+    if (DRAW_FPS_INFO) {
+      const fpsText = `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`;
+      const frameTimeText = `frame time: ${Math.round(performance.now() - frameStart)}ms`;
       const fontSize = 30;
+
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.font = `${fontSize}px Arial`;
+
       ctx.save();
       ctx.translate(1.5, 1.5);
       ctx.fillStyle = "black";
-      ctx.font = `${fontSize}px Arial`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(
-        `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`,
-        10,
-        10,
-      );
-      ctx.fillText(
-        `frame time: ${Math.round(performance.now() - frameStart)}ms`,
-        10,
-        10 + fontSize,
-      );
+      ctx.fillText(fpsText, 10, 10);
+      ctx.fillText(frameTimeText, 10, 10 + fontSize);
       ctx.restore();
-      ctx.save();
+
       ctx.fillStyle = "white";
-      ctx.font = `${fontSize}px Arial`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(
-        `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`,
-        10,
-        10,
-      );
-      ctx.fillText(
-        `frame time: ${Math.round(performance.now() - frameStart)}ms`,
-        10,
-        10 + fontSize,
-      );
-      ctx.restore();
+      ctx.fillText(fpsText, 10, 10);
+      ctx.fillText(frameTimeText, 10, 10 + fontSize);
     }
   }
-  if (LOG_FRAME_TIMES) console.timeEnd("frame");
 }
 
 if (import.meta.hot) {

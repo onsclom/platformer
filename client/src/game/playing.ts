@@ -1,7 +1,7 @@
 import { animate } from "../animate";
 import { playSound, stopSound } from "../audio";
 import { justPressed, keysDown } from "../input";
-import { globalState } from "../main";
+import { globalState } from "../entry-point";
 import { Camera } from "./camera";
 import { circleVsRect, rectVsRectCollision } from "./collision";
 import { cannonBallRadius, Level, timeSpentOnPhase } from "./level";

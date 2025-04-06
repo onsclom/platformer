@@ -70,3 +70,8 @@ document.addEventListener("visibilitychange", () => {
 document.addEventListener("fullscreenchange", () => {
   resetInput();
 });
+
+// Prevent the context menu from appearing on right click
+document.addEventListener("contextmenu", function (event) {
+  event.preventDefault();
+});

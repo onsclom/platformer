@@ -1,10 +1,9 @@
 import { restartLevel } from ".";
 import { animate } from "../animate";
 import { justPressed } from "../input";
-import { globalState } from "../main";
+import { globalState } from "../entry-point";
 import a from "./saved-levels/a";
 import b from "./saved-levels/b";
-import basic from "./saved-levels/basic";
 import HARD from "./saved-levels/HARD";
 
 type State = ReturnType<typeof create>;
@@ -50,8 +49,6 @@ export function update(state: State, dt: number) {
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
   const drawRect = ctx.canvas.getBoundingClientRect();
 
-  // i want circles for each level connected by lines
-
   const levelCircleRadius = 25;
   const xSpaceBetweenLevels = 100;
   const ySpaceBetweenLevels = 50;
@@ -59,17 +56,12 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = "#111";
   ctx.fillRect(0, 0, drawRect.width, drawRect.height);
 
-  // ctx.font = `${fontSize}px Arial`;
-  // ctx.textAlign = "center";
-  // ctx.textBaseline = "middle";
-
   ctx.save();
   ctx.translate(
     -state.animatedLevelIndex * xSpaceBetweenLevels,
     -state.animatedLevelIndex * ySpaceBetweenLevels,
   );
-  ctx.lineWidth = 5;
-
+  ctx.lineWidth = 3;
   ctx.strokeStyle = "white";
   // draw line between levels
   ctx.beginPath();
@@ -80,7 +72,8 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
   );
   ctx.stroke();
 
-  ctx.strokeStyle = "blue";
+  ctx.lineWidth = 5 + Math.sin(performance.now() * 0.005) * 0.5;
+  ctx.strokeStyle = "#66f";
 
   for (let i = 0; i < levels.length; i++) {
     ctx.beginPath();
@@ -106,11 +99,13 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
   ctx.font = `${fontSize}px Arial`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(
-    levels[state.levelIndex]!.name,
+  ctx.translate(
     drawRect.width / 2,
     drawRect.height / 2 - levelCircleRadius - fontSize * 2,
   );
+  ctx.translate(0, Math.sin(performance.now() * 0.004) * 2);
+  ctx.rotate(Math.sin(performance.now() * 0.007) * 0.05);
+  ctx.fillText(levels[state.levelIndex]!.name, 0, 0);
 }
 
 export const OfflineLevelPicker = { create, update, draw };
