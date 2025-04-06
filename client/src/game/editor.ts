@@ -128,6 +128,7 @@ export function update(state: State, dt: number) {
   // CAMERA CONTROLS
   //////////////////
 
+  // TODO: switch these to scroll?
   if (keysDown.has("Minus")) {
     state.camera.width *= 1 + dt * 0.001;
     state.camera.height *= 1 + dt * 0.001;
@@ -164,24 +165,24 @@ export function update(state: State, dt: number) {
 
   if (justPressed.has("KeyL")) {
     // copy level to clipboard
-    const level = {
-      static: state.level.static,
-    };
+    const level = { static: state.level.static };
     console.log(level);
-    navigator.clipboard.writeText(JSON.stringify(level)).then(() => {
-      playSound("death");
-    });
-  }
-
-  // upload level to server!
-  if (justPressed.has("KeyU")) {
-    client.level.create
-      .post(JSON.stringify({ static: state.level.static }))
-      .then((uuid) => {
-        console.log(uuid);
+    navigator.clipboard
+      .writeText(`export default ${JSON.stringify(level)}`)
+      .then(() => {
         playSound("death");
       });
   }
+
+  // // upload level to server!
+  // if (justPressed.has("KeyU")) {
+  //   client.level.create
+  //     .post(JSON.stringify({ static: state.level.static }))
+  //     .then((uuid) => {
+  //       console.log(uuid);
+  //       playSound("death");
+  //     });
+  // }
 }
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {

@@ -1,10 +1,10 @@
-import { restartLevel } from ".";
 import { animate } from "../animate";
 import { justPressed } from "../input";
 import { globalState } from "../entry-point";
 import a from "./saved-levels/a";
 import b from "./saved-levels/b";
 import HARD from "./saved-levels/HARD";
+import { restartLevel } from "./playing";
 
 type State = ReturnType<typeof create>;
 
@@ -42,7 +42,7 @@ export function update(state: State, dt: number) {
     // @ts-expect-error
     globalState.sceneData.playing.level.static =
       levels[state.levelIndex]!.level.static;
-    restartLevel(globalState);
+    restartLevel(globalState.sceneData.playing);
   }
 }
 

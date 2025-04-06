@@ -5,36 +5,35 @@ import {
   pointerPos,
 } from "../input";
 import { Editor } from "./editor";
-import { Playing } from "./playing";
+import { Playing, restartLevel } from "./playing";
 import { fontSize, OnlineLevelPicker } from "./online-picking-level";
 import { client } from "../server";
-import { Level } from "./level";
 import { OfflineLevelPicker } from "./offline-level-picker";
 
-export type State = ReturnType<typeof create>;
+const scenes = {
+  editor: Editor,
+  playing: Playing,
+  onlineLevelPicker: OnlineLevelPicker,
+  offlineLevelPicker: OfflineLevelPicker,
+} as const;
+
+const startingScene = "offlineLevelPicker";
 
 export function create() {
-  const state = {
-    curScene: "offlineLevelPicker" as
-      | "editor"
-      | "playing"
-      | "onlineLevelPicker"
-      | "offlineLevelPicker",
-    sceneData: {
-      editor: Editor.create(),
-      playing: Playing.create(),
-      onlineLevelPicker: OnlineLevelPicker.create(),
-      OfflineLevelPicker: OfflineLevelPicker.create(),
-    },
+  return {
+    curScene: startingScene as keyof typeof scenes,
+    sceneData: typedFromEntries(
+      typedKeys(scenes).map((key) => [key, scenes[key].create()]),
+    ) as SceneData,
   };
-  return state;
 }
 
 export function update(state: State, dt: number) {
+  // TODO: move a lot of this logic OUTTA HERE
   if (justPressed.has("KeyR")) {
     state.sceneData.playing.level = state.sceneData.editor.level;
     state.curScene = "playing";
-    restartLevel(state);
+    restartLevel(state.sceneData.playing);
   }
 
   if (import.meta.env.DEV && justPressed.has("KeyE")) {
@@ -59,8 +58,8 @@ export function update(state: State, dt: number) {
 
   if (justPressed.has("KeyO")) {
     state.curScene = "offlineLevelPicker";
-    state.sceneData.OfflineLevelPicker.animatedLevelIndex =
-      state.sceneData.OfflineLevelPicker.levelIndex;
+    state.sceneData.offlineLevelPicker.animatedLevelIndex =
+      state.sceneData.offlineLevelPicker.levelIndex;
   }
 
   // if (justPressed.has("p")) {
@@ -86,7 +85,7 @@ export function update(state: State, dt: number) {
 
     const timeToResetAfterDeath = 1000;
     if (state.sceneData.playing.player.timeSinceDead > timeToResetAfterDeath) {
-      restartLevel(state);
+      restartLevel(state.sceneData.playing);
     }
   } else if (state.curScene === "onlineLevelPicker") {
     OnlineLevelPicker.update(state.sceneData.onlineLevelPicker, dt);
@@ -108,33 +107,30 @@ export function update(state: State, dt: number) {
       }
     }
   } else if (state.curScene === "offlineLevelPicker") {
-    OfflineLevelPicker.update(state.sceneData.OfflineLevelPicker, dt);
+    OfflineLevelPicker.update(state.sceneData.offlineLevelPicker, dt);
   }
 
   clearInputs();
 }
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
-  if (state.curScene === "editor") {
-    Editor.draw(state.sceneData.editor, ctx);
-  } else if (state.curScene === "playing") {
-    Playing.draw(state.sceneData.playing, ctx);
-  } else if (state.curScene === "onlineLevelPicker") {
-    OnlineLevelPicker.draw(state.sceneData.onlineLevelPicker, ctx);
-  } else if (state.curScene === "offlineLevelPicker") {
-    OfflineLevelPicker.draw(state.sceneData.OfflineLevelPicker, ctx);
+  const curData = state.sceneData[state.curScene]!;
+  // @ts-expect-error don't feel like convincing TS this is valid
+  scenes[state.curScene].draw(curData, ctx);
+}
+
+// i shoved the typescript magic i don't really understand here
+export type State = ReturnType<typeof create>;
+const typedKeys = <T extends object>(obj: T) => Object.keys(obj) as (keyof T)[];
+function typedFromEntries<T extends readonly (readonly [PropertyKey, any])[]>(
+  entries: T,
+): { [K in T[number] as K[0]]: K[1] } {
+  return Object.fromEntries(entries) as any;
+}
+type SceneData = {
+  [K in keyof typeof scenes]: (typeof scenes)[K] extends {
+    create: () => infer R;
   }
-}
-
-export function restartLevel(state: State) {
-  const playing = state.sceneData.playing;
-  playing.player.x = 0;
-  playing.player.y = 1;
-  playing.player.dy = 0;
-  playing.player.xMomentum = 0;
-  playing.player.alive = true;
-  playing.level.ephemeral = Level.createEphemeral();
-
-  playing.won = false;
-  playing.timeSinceWon = 0;
-}
+    ? R
+    : never;
+};

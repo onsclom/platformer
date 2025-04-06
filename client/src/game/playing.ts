@@ -235,17 +235,18 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("LEVEL COMPLETE", drawRect.width / 2, drawRect.height / 2);
-  } else if (state.player.alive === false) {
-    ctx.globalAlpha = 0.5;
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, drawRect.width, drawRect.height);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "white";
-    ctx.font = "50px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("YOU DIED", drawRect.width / 2, drawRect.height / 2);
   }
+  // else if (state.player.alive === false) {
+  //   ctx.globalAlpha = 0.5;
+  //   ctx.fillStyle = "black";
+  //   ctx.fillRect(0, 0, drawRect.width, drawRect.height);
+  //   ctx.globalAlpha = 1;
+  //   ctx.fillStyle = "white";
+  //   ctx.font = "50px Arial";
+  //   ctx.textAlign = "center";
+  //   ctx.textBaseline = "middle";
+  //   ctx.fillText("YOU DIED", drawRect.width / 2, drawRect.height / 2);
+  // }
 }
 
 export const Playing = { create, update, draw };
@@ -496,4 +497,15 @@ function killPlayer(state: State) {
     state.player.alive = false;
     state.camera.shakeFactor = 1;
   }
+}
+
+export function restartLevel(playing: State) {
+  playing.player.x = 0;
+  playing.player.y = 1;
+  playing.player.dy = 0;
+  playing.player.xMomentum = 0;
+  playing.player.alive = true;
+  playing.level.ephemeral = Level.createEphemeral();
+  playing.won = false;
+  playing.timeSinceWon = 0;
 }
