@@ -60,7 +60,7 @@ export function update(state: State, dt: number) {
     return false;
   });
 
-  if (state.player.alive) {
+  if (state.player.alive && !state.won) {
     const { walking, wallSliding, wallSlidedir } = moveAndSlidePlayer(
       state,
       dt,
