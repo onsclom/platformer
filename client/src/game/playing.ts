@@ -37,6 +37,26 @@ export function create() {
 }
 
 export function update(state: State, dt: number) {
+  if (justPressed.has("KeyO")) {
+    globalState.curScene = "offlineLevelPicker";
+    globalState.offlineLevelPicker.animatedLevelIndex =
+      globalState.offlineLevelPicker.levelIndex;
+    return;
+  }
+  if (justPressed.has("KeyR")) {
+    restartLevel(state);
+    return;
+  }
+  if (justPressed.has("KeyE") && import.meta.env.DEV) {
+    globalState.curScene = "editor";
+    globalState.editor.camera.x = globalState.playing.player.x;
+    globalState.editor.camera.y = globalState.playing.player.y;
+    globalState.editor.camera.width = globalState.playing.camera.width;
+    globalState.editor.camera.height = globalState.playing.camera.height;
+    globalState.editor.level = globalState.playing.level;
+    return;
+  }
+
   Camera.update(state.camera, dt);
 
   {
@@ -213,6 +233,11 @@ export function update(state: State, dt: number) {
   if (state.timeSinceWon > timeSpentOnWin) {
     // go to level select screen
     globalState.curScene = "offlineLevelPicker";
+  }
+
+  const timeToResetAfterDeath = 1000;
+  if (state.player.timeSinceDead > timeToResetAfterDeath) {
+    restartLevel(state);
   }
 }
 
@@ -499,13 +524,17 @@ function killPlayer(state: State) {
   }
 }
 
-export function restartLevel(playing: State) {
+export function restartPlayer(playing: State) {
   playing.player.x = 0;
   playing.player.y = 1;
   playing.player.dy = 0;
   playing.player.xMomentum = 0;
   playing.player.alive = true;
-  playing.level.ephemeral = Level.createEphemeral();
   playing.won = false;
   playing.timeSinceWon = 0;
+}
+
+export function restartLevel(playing: State) {
+  restartPlayer(playing);
+  playing.level.ephemeral = Level.createEphemeral();
 }

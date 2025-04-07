@@ -1,4 +1,5 @@
 import { playSound } from "../audio";
+import { globalState } from "../entry-point";
 import {
   justLeftClicked,
   justPressed,
@@ -11,7 +12,11 @@ import { client } from "../server";
 import { Camera } from "./camera";
 import { Level, Tile } from "./level";
 import { playerColor, playerHeight, playerWidth } from "./player";
-import { updateIntervalBlocksOnLastFrame } from "./playing";
+import {
+  restartLevel,
+  restartPlayer,
+  updateIntervalBlocksOnLastFrame,
+} from "./playing";
 import { gridSize } from "./top-level-constants";
 
 export function create() {
@@ -174,6 +179,18 @@ export function update(state: State, dt: number) {
       });
   }
 
+  if (justPressed.has("KeyR")) {
+    globalState.curScene = "playing";
+    restartLevel(globalState.playing);
+  }
+  if (justPressed.has("KeyE") && import.meta.env.DEV) {
+    globalState.curScene = "playing";
+    globalState.playing.level = globalState.editor.level;
+    restartPlayer(globalState.playing);
+    globalState.playing.player.x = state.camera.x;
+    globalState.playing.player.y = state.camera.y;
+  }
+
   // // upload level to server!
   // if (justPressed.has("KeyU")) {
   //   client.level.create
@@ -225,12 +242,18 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
 
   const canvasRect = ctx.canvas.getBoundingClientRect();
 
-  // put "editing" at top
-  ctx.fillStyle = "black";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   ctx.font = `${canvasRect.width * 0.025}px Arial`;
-  ctx.fillText(`${state.placingType}`, canvasRect.width / 2, 0);
+
+  ctx.fillStyle = "black";
+  ctx.fillText(`${state.placingType}`, canvasRect.width / 2 + 2, 2 + 10);
+  ctx.fillStyle = "white";
+  ctx.fillText(`${state.placingType}`, canvasRect.width / 2, 10);
+
+  ctx.fillStyle = "yellow";
+  ctx.textAlign = "left";
+  ctx.fillText("EDITING", 10, 10);
 }
 
 export const Editor = { create, update, draw };

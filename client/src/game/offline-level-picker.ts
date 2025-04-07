@@ -14,8 +14,6 @@ const levels = [
   { name: "hard", level: HARD },
 ];
 
-const fontSize = 30;
-
 export function create() {
   return {
     levelIndex: 0,
@@ -40,9 +38,8 @@ export function update(state: State, dt: number) {
   if (justPressed.has("Space") || justPressed.has("Enter")) {
     globalState.curScene = "playing";
     // @ts-expect-error
-    globalState.sceneData.playing.level.static =
-      levels[state.levelIndex]!.level.static;
-    restartLevel(globalState.sceneData.playing);
+    globalState.playing.level.static = levels[state.levelIndex]!.level.static;
+    restartLevel(globalState.playing);
   }
 }
 
@@ -52,9 +49,16 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
   const levelCircleRadius = 25;
   const xSpaceBetweenLevels = 100;
   const ySpaceBetweenLevels = 50;
+  const fontSize = 30;
 
   ctx.fillStyle = "#111";
   ctx.fillRect(0, 0, drawRect.width, drawRect.height);
+
+  ctx.fillStyle = "white";
+  ctx.font = `${fontSize * 1.2}px Arial`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("LEVEL SELECT", drawRect.width / 2, fontSize * 2);
 
   ctx.save();
   ctx.translate(
@@ -97,8 +101,6 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
   // draw level title
   ctx.fillStyle = "white";
   ctx.font = `${fontSize}px Arial`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
   ctx.translate(
     drawRect.width / 2,
     drawRect.height / 2 - levelCircleRadius - fontSize * 2,
