@@ -178,7 +178,6 @@ export function update(state: State, dt: number) {
 
     if (colliding) {
       killPlayer(state);
-      // Level.spawnBulletExplosion(state.level, bullet.x, bullet.y);
       bullet.dx = 0;
       bullet.dy = 0;
     }
@@ -197,9 +196,6 @@ export function update(state: State, dt: number) {
       playerHeight * 0.5 + tileSize * 0.5;
 
     if (xTouching && yTouching) {
-      // make player do unskippable jump
-      // state.player.timeSinceGrounded = coyote
-
       playerJump(state.player);
       state.level.ephemeral.trampolinesTouched.set(
         `${trampoline.x},${trampoline.y}`,
@@ -235,13 +231,15 @@ export function update(state: State, dt: number) {
     globalState.curScene = "offlineLevelPicker";
   }
 
-  const timeToResetAfterDeath = 1000;
-  if (state.player.timeSinceDead > timeToResetAfterDeath) {
+  const timeSpentOnDeath = 1000;
+  if (state.player.timeSinceDead > timeSpentOnDeath) {
     restartLevel(state);
   }
 }
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
+  // ctx2d drawing
+  //////////////////
   Camera.drawWithLetterBoxedCamera(state.camera, ctx, () => {
     // draw solid tiles
     Level.draw(state.level, ctx, state.player);
@@ -249,7 +247,10 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
   });
 
   // draw win screen
-  const drawRect = ctx.canvas.getBoundingClientRect();
+  const drawRect = {
+    width: ctx.canvas.width / devicePixelRatio,
+    height: ctx.canvas.height / devicePixelRatio,
+  };
   if (state.won) {
     ctx.globalAlpha = 0.5;
     ctx.fillStyle = "black";

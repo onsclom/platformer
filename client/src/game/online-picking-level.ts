@@ -15,7 +15,10 @@ export function create() {
 export function update(state: State, dt: number) {}
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
-  const rect = ctx.canvas.getBoundingClientRect();
+  const rect = {
+    width: ctx.canvas.width / devicePixelRatio,
+    height: ctx.canvas.height / devicePixelRatio,
+  };
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, rect.width, rect.height);
 

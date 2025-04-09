@@ -11,7 +11,7 @@ const scenes = {
   offlineLevelPicker: OfflineLevelPicker,
 } as const;
 
-const startingScene = "offlineLevelPicker";
+const startingScene = "playing";
 
 export function create() {
   return {
@@ -28,7 +28,10 @@ export function update(state: State, dt: number) {
   clearInputs();
 }
 
-export function draw(state: State, ctx: CanvasRenderingContext2D) {
+export function draw(
+  state: State,
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+) {
   // @ts-expect-error don't feel like convincing TS this is valid
   scenes[state.curScene].draw(state[state.curScene], ctx);
 }

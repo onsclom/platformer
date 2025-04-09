@@ -35,7 +35,10 @@ function drawWithLetterBoxedCamera(
   ctx: CanvasRenderingContext2D,
   draw: (ctx: CanvasRenderingContext2D) => void,
 ) {
-  const canvasRect = ctx.canvas.getBoundingClientRect();
+  const canvasRect = {
+    width: ctx.canvas.width / devicePixelRatio,
+    height: ctx.canvas.height / devicePixelRatio,
+  };
 
   const aspectRatio = 1;
   const minSide = Math.min(canvasRect.width, canvasRect.height);

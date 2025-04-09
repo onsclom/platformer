@@ -8,7 +8,6 @@ import {
   pointerPos,
   rightClickDown,
 } from "../input";
-import { client } from "../server";
 import { Camera } from "./camera";
 import { Level, Tile } from "./level";
 import { playerColor, playerHeight, playerWidth } from "./player";
@@ -190,16 +189,6 @@ export function update(state: State, dt: number) {
     globalState.playing.player.x = state.camera.x;
     globalState.playing.player.y = state.camera.y;
   }
-
-  // // upload level to server!
-  // if (justPressed.has("KeyU")) {
-  //   client.level.create
-  //     .post(JSON.stringify({ static: state.level.static }))
-  //     .then((uuid) => {
-  //       console.log(uuid);
-  //       playSound("death");
-  //     });
-  // }
 }
 
 export function draw(state: State, ctx: CanvasRenderingContext2D) {
@@ -240,7 +229,10 @@ export function draw(state: State, ctx: CanvasRenderingContext2D) {
   // UI
   //////////////////
 
-  const canvasRect = ctx.canvas.getBoundingClientRect();
+  const canvasRect = {
+    width: ctx.canvas.width / devicePixelRatio,
+    height: ctx.canvas.height / devicePixelRatio,
+  };
 
   ctx.textAlign = "center";
   ctx.textBaseline = "top";

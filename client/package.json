@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@elysiajs/eden": "^1.2.0",
+    "regl": "^2.1.1",
     "simplex-noise": "^4.0.3"
   }
 }
