@@ -73,6 +73,28 @@ function draw(
   ctx: CanvasRenderingContext2D,
   camera: CameraState,
 ) {
+  ctx.fillStyle = "gray";
+  for (const particle of state.particles.instances) {
+    if (particle.lifetime > 0) {
+      ctx.save();
+      ctx.translate(particle.x, -particle.y);
+      ctx.scale(
+        (particle.lifetime * 0.4) / playerParticleLifetime,
+        (particle.lifetime * 0.4) / playerParticleLifetime,
+      );
+
+      const timeAlive = playerParticleLifetime - particle.lifetime;
+      ctx.globalAlpha = Math.min(
+        (timeAlive / fadeInTime) ** 2,
+        1 - timeAlive / playerParticleLifetime,
+      );
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
   {
     ctx.save();
     ctx.translate(state.x, -state.y);
@@ -108,29 +130,6 @@ function draw(
     );
 
     ctx.restore();
-  }
-
-  ctx.fillStyle = "gray";
-  for (const particle of state.particles.instances) {
-    if (particle.lifetime > 0) {
-      ctx.save();
-      ctx.translate(particle.x, -particle.y);
-      ctx.scale(
-        (particle.lifetime * 0.4) / playerParticleLifetime,
-        (particle.lifetime * 0.4) / playerParticleLifetime,
-      );
-
-      const timeAlive = playerParticleLifetime - particle.lifetime;
-      ctx.globalAlpha = Math.min(
-        (timeAlive / fadeInTime) ** 2,
-        1 - timeAlive / playerParticleLifetime,
-      );
-
-      ctx.beginPath();
-      ctx.arc(0, 0, 0.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
   }
 }
 

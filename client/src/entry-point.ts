@@ -1,15 +1,19 @@
 import { update, draw, create } from "./game";
 import { assert } from "./assert";
 import { clearInputs } from "./input";
-import createRegl from "regl";
+import {
+  drawCircle,
+  drawPlayer,
+  drawTile,
+  regl,
+  webglCanvas,
+} from "./game/regl/index";
+import { cannonBallRadius, timeSpentOnPhase } from "./game/level";
+import { playerHeight, playerWidth } from "./game/player";
 
 // the canvases we draw to
 const ctxCanvas = new OffscreenCanvas(0, 0);
 const ctx = ctxCanvas.getContext("2d")!;
-
-const webglCanvas = new OffscreenCanvas(0, 0);
-export const gl = webglCanvas.getContext("webgl2")!;
-const regl = createRegl({ gl });
 
 // the canvas we show the user
 let canvas = document.querySelector("canvas");
@@ -23,6 +27,7 @@ let curUpdate = update;
 let curDraw = draw;
 export let globalState = create();
 let shouldDraw2d = true;
+const timeDraws = true;
 
 if (!canvas) {
   canvas = document.createElement("canvas");
@@ -70,7 +75,6 @@ function raf() {
 
     assert(ctx);
     ctx.scale(devicePixelRatio, devicePixelRatio);
-    assert(gl);
 
     timeToProcess += dt;
     const physicHz = 500;
@@ -80,9 +84,11 @@ function raf() {
       curUpdate(globalState, physicTickMs);
       clearInputs();
     }
+    if (timeDraws) console.time("ctx2d draw");
     ctx.save();
     curDraw(globalState, ctx);
     ctx.restore();
+    if (timeDraws) console.timeEnd("ctx2d draw");
 
     if (DRAW_FPS_INFO) {
       const fpsText = `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`;
@@ -106,47 +112,10 @@ function raf() {
     }
 
     {
-      regl.poll();
-      // This clears the color buffer to black and the depth buffer to 1
-      regl.clear({
-        color: [0, 0, 0, 1],
-        depth: 1,
-      });
+      if (timeDraws) console.time("webgl draw");
+      reglDraw();
+      if (timeDraws) console.timeEnd("webgl draw");
 
-      // In regl, draw operations are specified declaratively using. Each JSON
-      // command is a complete description of all state. This removes the need to
-      // .bind() things like buffers or shaders. All the boilerplate of setting up
-      // and tearing down state is automated.
-      regl({
-        // In a draw call, we can pass the shader source code to regl
-        frag: `
-        precision mediump float;
-        uniform vec4 color;
-        void main () {
-          gl_FragColor = color;
-        }`,
-
-        vert: `
-        precision mediump float;
-        attribute vec2 position;
-        void main () {
-          gl_Position = vec4(position, 0, 1);
-        }`,
-
-        attributes: {
-          position: [
-            [-1, 0],
-            [0, -1],
-            [1, 1],
-          ],
-        },
-
-        uniforms: {
-          color: [1, 0, 0, 1],
-        },
-
-        count: 3,
-      })();
       const screenCtx = canvas.getContext("2d")!;
       screenCtx.drawImage(webglCanvas, 0, 0);
     }
@@ -174,5 +143,132 @@ if (import.meta.hot) {
       globalState = newModule.create();
       Object.assign(globalState, oldState);
     }
+  });
+}
+
+function reglDraw() {
+  regl.poll();
+  regl.clear({
+    color: [0, 0, 0, 1],
+    depth: 1,
+  });
+
+  const playing = globalState.playing;
+
+  const camera = {
+    x: playing.camera.x,
+    y: playing.camera.y,
+    minWidth: 25 / 2,
+    minHeight: 25 / 2,
+  };
+
+  assert(canvas);
+  const aspect = canvas.width / canvas.height;
+  const minW = camera.minWidth;
+  const minH = camera.minHeight;
+  let width = minW;
+  let height = minH;
+  if (aspect > minW / minH) {
+    width = minH * aspect;
+  } else {
+    height = minW / aspect;
+  }
+
+  const cameraPos = [camera.x, camera.y] as const;
+  const cameraSize = [width, height] as const;
+
+  {
+    const color = [0.7, 0.7, 0.7, 1] as const;
+    globalState.playing.level.ephemeral.background.tiles.forEach((tile) => {
+      drawTile({
+        tileCenter: [tile.x, tile.y],
+        cameraPos,
+        cameraSize,
+        color,
+      });
+    });
+  }
+
+  const intervalAOn = Boolean(
+    Math.floor(performance.now() / timeSpentOnPhase) % 2,
+  );
+  globalState.playing.level.static.tiles.forEach((tile) => {
+    if (tile.type === "solid") {
+      {
+        const color = [1, 1, 1, 1] as const;
+        drawTile({
+          tileCenter: [tile.x, tile.y],
+          cameraPos,
+          cameraSize,
+          color,
+        });
+      }
+    } else if (tile.type === "lava") {
+      const color = [1, 0, 0, 1];
+      drawTile({
+        tileCenter: [tile.x, tile.y],
+        cameraPos,
+        cameraSize,
+        color,
+      });
+    } else if (tile.type === "cannon") {
+      const color = [0, 1, 0, 1];
+      drawTile({
+        tileCenter: [tile.x, tile.y],
+        cameraPos,
+        cameraSize,
+        color,
+      });
+    } else if (tile.type === "trampoline") {
+      const color = [0, 1, 1, 1];
+      drawTile({
+        tileCenter: [tile.x, tile.y],
+        cameraPos,
+        cameraSize,
+        color,
+      });
+    } else if (tile.type === "interval") {
+      ctx.restore();
+      const color =
+        (tile.start === "on") === intervalAOn ? [1, 1, 0, 1] : [1, 1, 0, 0.5];
+      drawTile({
+        tileCenter: [tile.x, tile.y],
+        cameraPos,
+        cameraSize,
+        color,
+      });
+    }
+  });
+
+  // drawTile({
+  //   tileCenter: [playing.player.x, playing.player.y],
+  //   cameraPos: [camera.x, camera.y],
+  //   cameraSize,
+  //   color: [0, 0, 1, 0.5],
+  // });
+
+  const color = [1, 0, 0, 1];
+  globalState.playing.level.ephemeral.cannonBalls.instances.forEach(
+    (cannonBall) => {
+      if (cannonBall.dx === 0 && cannonBall.dy === 0) return;
+      drawCircle({
+        center: [cannonBall.x, cannonBall.y],
+        radius: cannonBallRadius,
+        cameraPos,
+        cameraSize,
+        color,
+      });
+    },
+  );
+
+  drawPlayer({
+    center: [globalState.playing.player.x, globalState.playing.player.y],
+    cameraPos,
+    cameraSize,
+    color: [0, 0, 1, 1],
+    yscale: globalState.playing.player.yScale,
+    xscale: globalState.playing.player.xScale,
+    size: [playerWidth, playerHeight],
+    rotation: -globalState.playing.camera.angle * 8,
   });
 }
