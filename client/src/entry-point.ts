@@ -1,20 +1,9 @@
 import { update, draw, create, reglDraw } from "./game";
-import { assert } from "./assert";
 import { clearInputs } from "./input";
-import {
-  drawCircle,
-  drawPlayer,
-  drawTile,
-  regl,
-  webglCanvas,
-} from "./game/regl/index";
-import { cannonBallRadius, timeSpentOnPhase } from "./game/level";
-import { playerHeight, playerWidth } from "./game/player";
+import { webglCanvas } from "./game/regl/index";
 
 let previousTime = performance.now();
 let timeToProcess = 0;
-
-const DRAW_FPS_INFO = true;
 
 let curUpdate = update;
 let curDraw = draw;
@@ -76,14 +65,14 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-if (import.meta.hot) {
-  import.meta.hot.accept("./game/index", (newModule) => {
-    if (newModule) {
-      curUpdate = newModule.update;
-      curDraw = newModule.draw;
-      const oldState = globalState;
-      globalState = newModule.create();
-      Object.assign(globalState, oldState);
-    }
-  });
-}
+// if (import.meta.hot) {
+//   import.meta.hot.accept("./game/index", (newModule) => {
+//     if (newModule) {
+//       curUpdate = newModule.update;
+//       curDraw = newModule.draw;
+//       const oldState = globalState;
+//       globalState = newModule.create();
+//       Object.assign(globalState, oldState);
+//     }
+//   });
+// }

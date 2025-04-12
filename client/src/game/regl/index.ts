@@ -9,7 +9,11 @@ webglCanvas.style.top = "0";
 webglCanvas.style.left = "0";
 
 const gl = webglCanvas.getContext("webgl", { antialias: false })!;
-export const regl = createRegl({ gl });
+export const regl = createRegl({ gl, extensions: ["angle_instanced_arrays"] });
+
+export const sceneFBO = regl.framebuffer({
+  depth: false,
+});
 
 type DrawWithCameraProps = {
   cameraPos: [number, number];
@@ -27,6 +31,7 @@ export const drawWithCamera = regl<
   DrawWithCameraProps,
   DrawWithCameraContext
 >({
+  framebuffer: sceneFBO,
   context: {
     cameraPos: (_ctx, props) => props.cameraPos,
     cameraSize: (_ctx, props) => props.cameraSize,
@@ -682,4 +687,219 @@ export const drawBackground = regl<
     resolution: (ctx, _props) => [ctx.viewportWidth, ctx.viewportHeight],
   },
   count: 6,
+});
+
+type PostUniforms = {
+  sceneTex: typeof sceneFBO;
+  uTime: number;
+  cameraPos: [number, number];
+  cameraSize: [number, number];
+  resolution: [number, number];
+};
+
+type PostAttributes = {
+  position: number[][];
+};
+
+type PostProps = {
+  cameraPos: [number, number];
+  cameraSize: [number, number];
+};
+
+export const drawPost = regl<PostUniforms, PostAttributes, PostProps>({
+  vert: `
+    precision highp float;
+    attribute vec2 position;
+    varying vec2 vUv;
+    void main() {
+      vUv = 0.5 * (position + 1.0);  // [0,1] screen UVs
+      gl_Position = vec4(position, 0, 1);
+    }
+  `,
+  frag: `
+  precision highp float;
+
+  varying vec2 vUv;
+
+  uniform sampler2D sceneTex;
+  uniform float uTime;
+  uniform vec2 cameraPos;
+  uniform vec2 cameraSize;
+  uniform vec2 resolution;
+
+  // Hash function for noise
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+
+  // 2D Value noise
+  float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(a, b, u.x) +
+           (c - a) * u.y * (1.0 - u.x) +
+           (d - b) * u.x * u.y;
+  }
+
+  // Fake 3D noise by projecting time into 2D noise space
+  float noise3D(vec2 p, float t) {
+    float n1 = noise(p + vec2(sin(t), cos(t)) * 3.0);
+    float n2 = noise(p + vec2(sin(t * 0.7 + 3.0), cos(t * 0.5 + 1.0)) * 5.0);
+    return mix(n1, n2, 0.5);
+  }
+
+  void main() {
+    // Convert screen UV [0,1] to normalized device coordinates [-1,1]
+    vec2 ndc = vUv * 2.0 - 1.0;
+
+    // Convert to world position using camera
+    vec2 worldPos = ndc * cameraSize + cameraPos;
+
+    // Apply animated noise distortion in world space
+    float speed = 5.0;
+    float magnitude = 0.175;
+
+    float n1 = noise3D(worldPos * 2.0, uTime * speed);
+    float n2 = noise3D(worldPos * 2.0 + vec2(4.2, 1.3), uTime * speed);
+    worldPos += (vec2(n1, n2) - 0.5) * magnitude;
+
+    // Project back to UV space for sampling the scene texture
+    vec2 screenPos = (worldPos - cameraPos) / cameraSize;
+    vec2 uv = screenPos * 0.5 + 0.5;
+
+    // Sample the original scene with distorted UV
+    gl_FragColor = texture2D(sceneTex, uv);
+  }
+  `,
+  attributes: {
+    position: [
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, -1],
+      [1, 1],
+      [-1, 1],
+    ],
+  },
+  uniforms: {
+    sceneTex: sceneFBO,
+    uTime: regl.context("time"),
+    cameraPos: (_ctx, props) => props.cameraPos,
+    cameraSize: (_ctx, props) => props.cameraSize,
+    resolution: ({ viewportWidth, viewportHeight }) => [
+      viewportWidth,
+      viewportHeight,
+    ],
+  },
+  count: 6,
+  depth: { enable: false },
+});
+
+type CirclesUniforms = {
+  cameraPos: [number, number];
+  cameraSize: [number, number];
+  defaultColor: [number, number, number, number];
+};
+
+type CirclesAttributes = {
+  position: [number, number][];
+  center: [number, number][];
+  radius: number[];
+  color: [number, number, number, number][];
+};
+
+type CirclesProps = {
+  centers: [number, number][];
+  radii: number[];
+  colors?: [number, number, number, number][];
+  cameraPos: [number, number];
+  cameraSize: [number, number];
+  defaultColor?: [number, number, number, number];
+};
+
+export const drawCircles = regl<
+  CirclesUniforms,
+  CirclesAttributes,
+  CirclesProps
+>({
+  depth: { enable: false },
+
+  vert: `
+    precision highp float;
+    attribute vec2 position;
+    attribute vec2 center;
+    attribute float radius;
+    attribute vec4 color;
+
+    uniform vec2 cameraPos;
+    uniform vec2 cameraSize;
+
+    varying vec2 localPos;
+    varying vec4 instanceColor;
+
+    void main() {
+      // Local square: -0.5 to 0.5
+      localPos = position;
+      instanceColor = color;
+
+      // Scale and translate to world space
+      vec2 worldPos = center + position * radius * 2.0;
+
+      // Convert to screen space
+      vec2 screenPos = (worldPos - cameraPos) / cameraSize;
+      gl_Position = vec4(screenPos, 0.0, 1.0);
+    }
+  `,
+
+  frag: `
+    precision highp float;
+
+    uniform vec4 defaultColor;
+    varying vec2 localPos;
+    varying vec4 instanceColor;
+
+    void main() {
+      float dist = length(localPos);
+      if (dist > 0.5) discard; // outside the unit circle
+      gl_FragColor = instanceColor;
+    }
+  `,
+
+  attributes: {
+    position: [
+      [-0.5, -0.5],
+      [0.5, -0.5],
+      [0.5, 0.5],
+      [-0.5, -0.5],
+      [0.5, 0.5],
+      [-0.5, 0.5],
+    ],
+    center: (ctx, props) => ({
+      buffer: props.centers,
+      divisor: 1,
+    }),
+    radius: (ctx, props) => ({
+      buffer: props.radii,
+      divisor: 1,
+    }),
+    color: (ctx, props) => ({
+      buffer: props.colors || [],
+      divisor: 1,
+    }),
+  },
+
+  uniforms: {
+    cameraPos: regl.prop<CirclesProps, "cameraPos">("cameraPos"),
+    cameraSize: regl.prop<CirclesProps, "cameraSize">("cameraSize"),
+    defaultColor: (ctx, props) => props.defaultColor || [1, 1, 1, 1],
+  },
+
+  count: 6,
+  instances: (ctx, props) => props.centers.length,
+  primitive: "triangles",
 });

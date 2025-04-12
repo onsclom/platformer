@@ -18,7 +18,7 @@ const maxExplosionParticles = 1000;
 const explosionParticleLifetime = 1000;
 
 const maxCannonballTrailParticles = 1000;
-const cannonBallTrailParticleLifetime = 500;
+export const cannonBallTrailParticleLifetime = 500;
 
 const maxCannonBalls = 500;
 const cannonSpawnHz = 1;
