@@ -8,12 +8,12 @@ const ctxCanvas = new OffscreenCanvas(0, 0);
 const ctx = ctxCanvas.getContext("2d")!;
 
 // the canvas we show the user
-let canvas = document.querySelector("canvas");
+export let mainCanvas = document.querySelector("canvas");
 
 let previousTime = performance.now();
 let timeToProcess = 0;
 
-const DRAW_FPS_INFO = true;
+const DRAW_FPS_INFO = false;
 
 let curUpdate = update;
 let curDraw = draw;
@@ -21,19 +21,19 @@ export let globalState = create();
 let shouldDraw2d = false;
 const timeDraws = true;
 
-if (!canvas) {
-  canvas = document.createElement("canvas");
-  canvas.style.width = "100%";
-  canvas.style.height = "100%";
-  canvas.style.position = "fixed";
-  canvas.style.top = "0";
-  canvas.style.left = "0";
-  document.body.appendChild(canvas);
+if (!mainCanvas) {
+  mainCanvas = document.createElement("canvas");
+  mainCanvas.style.width = "100%";
+  mainCanvas.style.height = "100%";
+  mainCanvas.style.position = "fixed";
+  mainCanvas.style.top = "0";
+  mainCanvas.style.left = "0";
+  document.body.appendChild(mainCanvas);
 
   // f to fullscreen
   document.addEventListener("keydown", (e) => {
     if (e.key === "f") {
-      canvas!.requestFullscreen();
+      mainCanvas!.requestFullscreen();
     }
   });
 
@@ -41,7 +41,7 @@ if (!canvas) {
 }
 
 function raf() {
-  assert(canvas);
+  assert(mainCanvas);
   const frameStart = performance.now();
   {
     requestAnimationFrame(raf);
@@ -55,9 +55,9 @@ function raf() {
     const dtTooBig = dt > 100;
     if (dtTooBig) return;
 
-    const canvasRect = canvas.getBoundingClientRect();
-    canvas.width = canvasRect.width * devicePixelRatio;
-    canvas.height = canvasRect.height * devicePixelRatio;
+    const canvasRect = mainCanvas.getBoundingClientRect();
+    mainCanvas.width = canvasRect.width * devicePixelRatio;
+    mainCanvas.height = canvasRect.height * devicePixelRatio;
 
     ctxCanvas.width = canvasRect.width * devicePixelRatio;
     ctxCanvas.height = canvasRect.height * devicePixelRatio;
@@ -83,13 +83,17 @@ function raf() {
     if (timeDraws) console.timeEnd("ctx2d draw");
 
     {
-      const screenCtx = canvas.getContext("2d")!;
+      const screenCtx = mainCanvas.getContext("2d")!;
+
+      // screenCtx.drawImage(webglCanvas, 0, 0);
+      // stretch to full size
       screenCtx.drawImage(webglCanvas, 0, 0);
     }
 
     // draw offscreen canvas to main canvas
     {
-      const screenCtx = canvas.getContext("2d")!;
+      const screenCtx = mainCanvas.getContext("2d")!;
+      screenCtx.canvas.style.imageRendering = "pixelated";
       if (shouldDraw2d) screenCtx.drawImage(ctxCanvas, 0, 0);
 
       const fontSize = 100;
@@ -97,12 +101,12 @@ function raf() {
       screenCtx.font = `${fontSize}px Arial`;
       screenCtx.textAlign = "left";
       screenCtx.textBaseline = "top";
-      screenCtx.fillText(shouldDraw2d ? "ctx2d" : "webgl", 50, 50);
+      // screenCtx.fillText(shouldDraw2d ? "ctx2d" : "webgl", 50, 50);
     }
   }
 
   if (DRAW_FPS_INFO) {
-    const screenCtx = canvas.getContext("2d")!;
+    const screenCtx = mainCanvas.getContext("2d")!;
     const fpsText = `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`;
     const frameTimeText = `frame time: ${Math.round(performance.now() - frameStart)}ms`;
     const fontSize = 30;

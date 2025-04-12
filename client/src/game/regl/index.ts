@@ -606,63 +606,74 @@ export const drawLavaTile = regl<
 
 // checkerboard shader
 type BackgroundUniforms = {
-  tileCenter: [number, number];
   cameraPos: [number, number];
   cameraSize: [number, number];
-  color: [number, number, number, number];
+  resolution: [number, number];
 };
 
 type BackgroundAttributes = {
   position: number[][];
 };
 
-type BackgroundProps = {
-  tileCenter: [number, number];
+type BackgroundProps = {};
+
+type BackgroundCtx = {
   cameraPos: [number, number];
   cameraSize: [number, number];
-  color: [number, number, number, number];
 };
 
-export const drawBackground = regl<TileUniforms, TileAttributes, TileProps>({
+export const drawBackground = regl<
+  BackgroundUniforms,
+  BackgroundAttributes,
+  BackgroundProps,
+  BackgroundCtx
+>({
   depth: { enable: false },
   vert: `
     precision highp float;
     attribute vec2 position;
 
-    uniform vec2 tileCenter;
-    uniform vec2 cameraPos;
-    uniform vec2 cameraSize;
-
     void main() {
-      vec2 worldPos = position + tileCenter;
-      vec2 screenPos = (worldPos - cameraPos) / cameraSize;
-      gl_Position = vec4(screenPos, 0, 1);
+      gl_Position = vec4(position, 0, 1);
     }
    `,
   frag: `
-    precision highp float;
+  precision highp float;
 
-    uniform vec4 color;
+  uniform vec2 cameraPos;
+  uniform vec2 cameraSize;
+  uniform vec2 resolution;
 
-    void main() {
-      gl_FragColor = color;
-    }
+  void main() {
+    vec2 fragUV = gl_FragCoord.xy / resolution;
+
+    vec2 uv = fragUV + cameraPos * 0.25 / cameraSize;
+
+    vec2 scaled = floor(uv * cameraSize * 2.0);
+    float check = mod(scaled.x + scaled.y, 2.0);
+
+    gl_FragColor = vec4(vec3(mix(
+      .2,
+      .3,
+      check
+    )), 1.0);
+  }
+
   `,
   attributes: {
     position: [
-      [-0.5, -0.5],
-      [0.5, -0.5],
-      [0.5, 0.5],
-      [-0.5, -0.5],
-      [0.5, 0.5],
-      [-0.5, 0.5],
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, -1],
+      [1, 1],
+      [-1, 1],
     ],
   },
   uniforms: {
-    tileCenter: regl.prop<TileProps, "tileCenter">("tileCenter"),
-    color: regl.prop<TileProps, "color">("color"),
-    cameraPos: regl.prop<TileProps, "cameraPos">("cameraPos"),
-    cameraSize: regl.prop<TileProps, "cameraSize">("cameraSize"),
+    cameraPos: (ctx, _props) => ctx.cameraPos,
+    cameraSize: (ctx, _props) => ctx.cameraSize,
+    resolution: (ctx, _props) => [ctx.viewportWidth, ctx.viewportHeight],
   },
   count: 6,
 });
