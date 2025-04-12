@@ -7,7 +7,7 @@ let canvas = document.querySelector("canvas");
 let previousTime = performance.now();
 let timeToProcess = 0;
 
-const DRAW_FPS_INFO = false;
+const DRAW_FPS_INFO = true;
 
 let curUpdate = update;
 let curDraw = draw;
@@ -65,24 +65,27 @@ function raf() {
     curDraw(globalState, ctx);
 
     if (DRAW_FPS_INFO) {
-      const fpsText = `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`;
-      const frameTimeText = `frame time: ${Math.round(performance.now() - frameStart)}ms`;
-      const fontSize = 30;
+      // const fpsText = `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`;
+      // const frameTimeText = `frame time: ${Math.round(performance.now() - frameStart)}ms`;
+      // const fontSize = 30;
 
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.font = `${fontSize}px Arial`;
+      // ctx.textAlign = "left";
+      // ctx.textBaseline = "top";
+      // ctx.font = `${fontSize}px Arial`;
 
-      ctx.save();
-      ctx.translate(1.5, 1.5);
-      ctx.fillStyle = "black";
-      ctx.fillText(fpsText, 10, 10);
-      ctx.fillText(frameTimeText, 10, 10 + fontSize);
-      ctx.restore();
+      // ctx.save();
+      // ctx.translate(1.5, 1.5);
+      // ctx.fillStyle = "black";
+      // ctx.fillText(fpsText, 10, 10);
+      // ctx.fillText(frameTimeText, 10, 10 + fontSize);
+      // ctx.restore();
 
-      ctx.fillStyle = "white";
-      ctx.fillText(fpsText, 10, 10);
-      ctx.fillText(frameTimeText, 10, 10 + fontSize);
+      // ctx.fillStyle = "white";
+      // ctx.fillText(fpsText, 10, 10);
+      // ctx.fillText(frameTimeText, 10, 10 + fontSize);
+      const frameTime = performance.now() - frameStart;
+      const fps = Math.round(1000 / frameTime);
+      console.log(`theoretical fps: ${fps}`);
     }
   }
 }
