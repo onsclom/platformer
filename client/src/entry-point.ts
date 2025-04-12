@@ -1,15 +1,7 @@
-import { update, draw, create } from "./game";
+import { update, draw, create, State } from "./game";
 import { assert } from "./assert";
 import { clearInputs } from "./input";
-import {
-  drawCircle,
-  drawPlayer,
-  drawTile,
-  regl,
-  webglCanvas,
-} from "./game/regl/index";
-import { cannonBallRadius, timeSpentOnPhase } from "./game/level";
-import { playerHeight, playerWidth } from "./game/player";
+import { webglCanvas } from "./game/regl/index";
 
 // the canvases we draw to
 const ctxCanvas = new OffscreenCanvas(0, 0);
@@ -26,7 +18,7 @@ const DRAW_FPS_INFO = true;
 let curUpdate = update;
 let curDraw = draw;
 export let globalState = create();
-let shouldDraw2d = true;
+let shouldDraw2d = false;
 const timeDraws = true;
 
 if (!canvas) {
@@ -90,32 +82,7 @@ function raf() {
     ctx.restore();
     if (timeDraws) console.timeEnd("ctx2d draw");
 
-    if (DRAW_FPS_INFO) {
-      const fpsText = `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`;
-      const frameTimeText = `frame time: ${Math.round(performance.now() - frameStart)}ms`;
-      const fontSize = 30;
-
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.font = `${fontSize}px Arial`;
-
-      ctx.save();
-      ctx.translate(1.5, 1.5);
-      ctx.fillStyle = "black";
-      ctx.fillText(fpsText, 10, 10);
-      ctx.fillText(frameTimeText, 10, 10 + fontSize);
-      ctx.restore();
-
-      ctx.fillStyle = "white";
-      ctx.fillText(fpsText, 10, 10);
-      ctx.fillText(frameTimeText, 10, 10 + fontSize);
-    }
-
     {
-      if (timeDraws) console.time("webgl draw");
-      reglDraw();
-      if (timeDraws) console.timeEnd("webgl draw");
-
       const screenCtx = canvas.getContext("2d")!;
       screenCtx.drawImage(webglCanvas, 0, 0);
     }
@@ -124,7 +91,36 @@ function raf() {
     {
       const screenCtx = canvas.getContext("2d")!;
       if (shouldDraw2d) screenCtx.drawImage(ctxCanvas, 0, 0);
+
+      const fontSize = 100;
+      screenCtx.fillStyle = "blue";
+      screenCtx.font = `${fontSize}px Arial`;
+      screenCtx.textAlign = "left";
+      screenCtx.textBaseline = "top";
+      screenCtx.fillText(shouldDraw2d ? "ctx2d" : "webgl", 50, 50);
     }
+  }
+
+  if (DRAW_FPS_INFO) {
+    const screenCtx = canvas.getContext("2d")!;
+    const fpsText = `FPS: ${Math.round(1000 / (performance.now() - frameStart))}`;
+    const frameTimeText = `frame time: ${Math.round(performance.now() - frameStart)}ms`;
+    const fontSize = 30;
+
+    screenCtx.textAlign = "left";
+    screenCtx.textBaseline = "top";
+    screenCtx.font = `${fontSize}px Arial`;
+
+    screenCtx.save();
+    screenCtx.translate(1.5, 1.5);
+    screenCtx.fillStyle = "black";
+    screenCtx.fillText(fpsText, 10, 10);
+    screenCtx.fillText(frameTimeText, 10, 10 + fontSize);
+    screenCtx.restore();
+
+    screenCtx.fillStyle = "white";
+    screenCtx.fillText(fpsText, 10, 10);
+    screenCtx.fillText(frameTimeText, 10, 10 + fontSize);
   }
 }
 
@@ -143,132 +139,5 @@ if (import.meta.hot) {
       globalState = newModule.create();
       Object.assign(globalState, oldState);
     }
-  });
-}
-
-function reglDraw() {
-  regl.poll();
-  regl.clear({
-    color: [0, 0, 0, 1],
-    depth: 1,
-  });
-
-  const playing = globalState.playing;
-
-  const camera = {
-    x: playing.camera.x,
-    y: playing.camera.y,
-    minWidth: 25 / 2,
-    minHeight: 25 / 2,
-  };
-
-  assert(canvas);
-  const aspect = canvas.width / canvas.height;
-  const minW = camera.minWidth;
-  const minH = camera.minHeight;
-  let width = minW;
-  let height = minH;
-  if (aspect > minW / minH) {
-    width = minH * aspect;
-  } else {
-    height = minW / aspect;
-  }
-
-  const cameraPos = [camera.x, camera.y] as const;
-  const cameraSize = [width, height] as const;
-
-  {
-    const color = [0.7, 0.7, 0.7, 1] as const;
-    globalState.playing.level.ephemeral.background.tiles.forEach((tile) => {
-      drawTile({
-        tileCenter: [tile.x, tile.y],
-        cameraPos,
-        cameraSize,
-        color,
-      });
-    });
-  }
-
-  const intervalAOn = Boolean(
-    Math.floor(performance.now() / timeSpentOnPhase) % 2,
-  );
-  globalState.playing.level.static.tiles.forEach((tile) => {
-    if (tile.type === "solid") {
-      {
-        const color = [1, 1, 1, 1] as const;
-        drawTile({
-          tileCenter: [tile.x, tile.y],
-          cameraPos,
-          cameraSize,
-          color,
-        });
-      }
-    } else if (tile.type === "lava") {
-      const color = [1, 0, 0, 1];
-      drawTile({
-        tileCenter: [tile.x, tile.y],
-        cameraPos,
-        cameraSize,
-        color,
-      });
-    } else if (tile.type === "cannon") {
-      const color = [0, 1, 0, 1];
-      drawTile({
-        tileCenter: [tile.x, tile.y],
-        cameraPos,
-        cameraSize,
-        color,
-      });
-    } else if (tile.type === "trampoline") {
-      const color = [0, 1, 1, 1];
-      drawTile({
-        tileCenter: [tile.x, tile.y],
-        cameraPos,
-        cameraSize,
-        color,
-      });
-    } else if (tile.type === "interval") {
-      ctx.restore();
-      const color =
-        (tile.start === "on") === intervalAOn ? [1, 1, 0, 1] : [1, 1, 0, 0.5];
-      drawTile({
-        tileCenter: [tile.x, tile.y],
-        cameraPos,
-        cameraSize,
-        color,
-      });
-    }
-  });
-
-  // drawTile({
-  //   tileCenter: [playing.player.x, playing.player.y],
-  //   cameraPos: [camera.x, camera.y],
-  //   cameraSize,
-  //   color: [0, 0, 1, 0.5],
-  // });
-
-  const color = [1, 0, 0, 1];
-  globalState.playing.level.ephemeral.cannonBalls.instances.forEach(
-    (cannonBall) => {
-      if (cannonBall.dx === 0 && cannonBall.dy === 0) return;
-      drawCircle({
-        center: [cannonBall.x, cannonBall.y],
-        radius: cannonBallRadius,
-        cameraPos,
-        cameraSize,
-        color,
-      });
-    },
-  );
-
-  drawPlayer({
-    center: [globalState.playing.player.x, globalState.playing.player.y],
-    cameraPos,
-    cameraSize,
-    color: [0, 0, 1, 1],
-    yscale: globalState.playing.player.yScale,
-    xscale: globalState.playing.player.xScale,
-    size: [playerWidth, playerHeight],
-    rotation: -globalState.playing.camera.angle * 8,
   });
 }

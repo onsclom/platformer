@@ -10,7 +10,7 @@ const audio = {
   death: { source: deathSound, volume: 1 },
   jump: { source: jumpSound, volume: 0.5 },
   land: { source: landSound, volume: 1 },
-  shoot: { source: shootSound, volume: 1 },
+  shoot: { source: shootSound, volume: 0 },
   "cannonball-explosion": { source: cannonballExplosion, volume: 0.3 },
   "jump-token": { source: jumpToken, volume: 1 },
   slide: { source: slideSound, volume: 0.5, loop: true }, // Add the slide sound, loop: true
