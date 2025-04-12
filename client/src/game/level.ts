@@ -519,8 +519,6 @@ export function draw(
     ctx.save();
     ctx.translate(tile.x * gridSize, -tile.y * gridSize);
     if (tile.type === "cannon" || tile.type === "turret") {
-    } else if (tile.type === "lava") {
-      drawWigglyTileBorders(ctx, tile, tiles);
     } else {
       drawWigglyTileBorders(ctx, tile, tiles);
     }

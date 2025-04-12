@@ -1,8 +1,14 @@
 import createRegl from "regl";
 
-export const webglCanvas = new OffscreenCanvas(0, 0);
-const gl = webglCanvas.getContext("webgl")!;
+export const webglCanvas = document.createElement("canvas");
+document.body.appendChild(webglCanvas);
+webglCanvas.style.width = "100%";
+webglCanvas.style.height = "100%";
+webglCanvas.style.position = "absolute";
+webglCanvas.style.top = "0";
+webglCanvas.style.left = "0";
 
+const gl = webglCanvas.getContext("webgl", { antialias: false })!;
 export const regl = createRegl({ gl });
 
 type DrawWithCameraProps = {

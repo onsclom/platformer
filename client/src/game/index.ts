@@ -15,7 +15,7 @@ import {
   regl,
   webglCanvas,
 } from "./regl";
-import { globalState, mainCanvas } from "../entry-point";
+import { globalState } from "../entry-point";
 import { cannonBallRadius, Tile, timeSpentOnPhase } from "./level";
 import { playerHeight, playerWidth } from "./player";
 import { assert } from "../assert";
@@ -46,11 +46,11 @@ export function update(state: State, dt: number) {
 
 const sceneFBO = regl.framebuffer({
   color: regl.texture({
-    width: 250,
-    height: 250,
+    width: 0,
+    height: 0,
     wrap: "clamp",
-    min: "linear",
-    mag: "linear",
+    min: "nearest",
+    mag: "nearest",
   }),
   depth: false,
 });
@@ -110,8 +110,8 @@ const drawPost = regl({
     vec2 worldPos = ndc * cameraSize + cameraPos;
 
     // Apply animated noise distortion in world space
-    float speed = 4.0;
-    float magnitude = 0.075;
+    float speed = 5.0;
+    float magnitude = 0.175;
 
     float n1 = noise3D(worldPos * 2.0, uTime * speed);
     float n2 = noise3D(worldPos * 2.0 + vec2(4.2, 1.3), uTime * speed);
@@ -158,11 +158,6 @@ export function draw(
 
   const timeDraws = true;
   if (timeDraws) console.time("webgl draw");
-
-  // @ts-expect-error
-  reglDraw(ctx.canvas);
-  // });
-
   if (timeDraws) console.timeEnd("webgl draw");
 }
 
@@ -184,17 +179,18 @@ type SceneData = {
 
 // === REGL STUFf
 
-function reglDraw(canvas: OffscreenCanvas) {
+export function reglDraw(canvas: HTMLCanvasElement) {
   const playing = globalState.playing;
 
   const camera = {
     x: playing.camera.x,
     y: playing.camera.y,
-    minWidth: 25 / 2,
-    minHeight: 25 / 2,
+    minWidth: 20 / 2,
+    minHeight: 20 / 2,
   };
 
-  const aspect = canvas.width / canvas.height;
+  const canvasRect = canvas.getBoundingClientRect();
+  const aspect = canvasRect.width / canvasRect.height;
   const minW = camera.minWidth;
   const minH = camera.minHeight;
   let width = minW;
@@ -210,83 +206,94 @@ function reglDraw(canvas: OffscreenCanvas) {
   const cameraPos = [camera.x, camera.y] as [number, number];
   const cameraSize = [width, height] as [number, number];
 
-  sceneFBO.resize(webglCanvas.width, webglCanvas.height);
+  const targetWidth = cameraSize[0] * 25;
+  const targetHeight = cameraSize[1] * 25;
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  canvas.style.imageRendering = "pixelated";
+
+  sceneFBO.resize(canvas.width, canvas.height);
   regl.poll();
   regl({ framebuffer: sceneFBO })(() => {
-    drawWithCamera({ cameraPos, cameraSize }, () => {
-      drawBackground();
-      {
-        const color: [number, number, number, number] = [0.7, 0.7, 0.7, 1];
-        playing.level.ephemeral.background.tiles.forEach((tile) => {
-          drawTileRegl({ tileCenter: [tile.x, tile.y], color });
-        });
-      }
-
-      const intervalAOn = Boolean(
-        Math.floor(performance.now() / timeSpentOnPhase) % 2,
-      );
-
-      playing.level.static.tiles.forEach((tile) => {
-        if (tile.type === "solid") {
-          {
-            const color: [number, number, number, number] = [1, 1, 1, 1];
-            drawTile([tile.x, tile.y], color);
-          }
-        } else if (tile.type === "lava") {
-        } else if (tile.type === "cannon") {
-          const color: [number, number, number, number] = [0, 1, 0, 1];
-          drawTile([tile.x, tile.y], color);
-        } else if (tile.type === "trampoline") {
-          const color: [number, number, number, number] = [0, 1, 1, 1];
-          drawTile([tile.x, tile.y], color);
-        } else if (tile.type === "interval") {
-          const color: [number, number, number, number] =
-            (tile.start === "on") === intervalAOn
-              ? [1, 1, 0, 1]
-              : [1, 1, 0, 0.5];
-          drawTile([tile.x, tile.y], color);
-        }
-      });
-    });
-
-    const time = performance.now() * 0.005;
-    for (const tile of playing.level.static.tiles) {
-      if (tile.type === "lava") {
-        drawLavaTile({
-          tileCenter: [tile.x, tile.y],
-          cameraPos,
-          cameraSize,
-          time,
-        });
-      }
-    }
-
-    drawOutlines(playing, cameraPos, cameraSize);
-
-    const color = [1, 0, 0, 1] as [number, number, number, number];
-    playing.level.ephemeral.cannonBalls.instances.forEach((cannonBall) => {
-      if (cannonBall.dx === 0 && cannonBall.dy === 0) return;
-      drawCircle({
-        center: [cannonBall.x, cannonBall.y],
-        radius: cannonBallRadius,
-        cameraPos,
-        cameraSize,
-        color,
-      });
-    });
-
-    drawPlayer({
-      center: [playing.player.x, playing.player.y],
-      cameraPos,
-      cameraSize,
-      color: [0, 0, 1, 1],
-      yscale: playing.player.yScale,
-      xscale: playing.player.xScale,
-      size: [playerWidth, playerHeight],
-      rotation: -playing.camera.angle * 8,
-    });
+    drawScene(cameraPos, cameraSize, playing);
   });
   drawPost({ cameraPos, cameraSize });
+}
+
+function drawScene(
+  cameraPos: [number, number],
+  cameraSize: [number, number],
+  playing: State["playing"],
+) {
+  drawWithCamera({ cameraPos, cameraSize }, () => {
+    drawBackground();
+    {
+      const color: [number, number, number, number] = [0.7, 0.7, 0.7, 1];
+      playing.level.ephemeral.background.tiles.forEach((tile) => {
+        drawTileRegl({ tileCenter: [tile.x, tile.y], color });
+      });
+    }
+
+    const intervalAOn = Boolean(
+      Math.floor(performance.now() / timeSpentOnPhase) % 2,
+    );
+
+    playing.level.static.tiles.forEach((tile) => {
+      if (tile.type === "solid") {
+        {
+          const color: [number, number, number, number] = [1, 1, 1, 1];
+          drawTile([tile.x, tile.y], color);
+        }
+      } else if (tile.type === "lava") {
+      } else if (tile.type === "cannon") {
+        const color: [number, number, number, number] = [0, 1, 0, 1];
+        drawTile([tile.x, tile.y], color);
+      } else if (tile.type === "trampoline") {
+        const color: [number, number, number, number] = [0, 1, 1, 1];
+        drawTile([tile.x, tile.y], color);
+      } else if (tile.type === "interval") {
+        const color: [number, number, number, number] =
+          (tile.start === "on") === intervalAOn ? [1, 1, 0, 1] : [1, 1, 0, 0.5];
+        drawTile([tile.x, tile.y], color);
+      }
+    });
+  });
+
+  const time = performance.now() * 0.005;
+  for (const tile of playing.level.static.tiles) {
+    if (tile.type === "lava") {
+      drawLavaTile({
+        tileCenter: [tile.x, tile.y],
+        cameraPos,
+        cameraSize,
+        time,
+      });
+    }
+  }
+
+  // drawOutlines(playing, cameraPos, cameraSize);
+  const color = [1, 0, 0, 1] as [number, number, number, number];
+  playing.level.ephemeral.cannonBalls.instances.forEach((cannonBall) => {
+    if (cannonBall.dx === 0 && cannonBall.dy === 0) return;
+    drawCircle({
+      center: [cannonBall.x, cannonBall.y],
+      radius: cannonBallRadius,
+      cameraPos,
+      cameraSize,
+      color,
+    });
+  });
+
+  drawPlayer({
+    center: [playing.player.x, playing.player.y],
+    cameraPos,
+    cameraSize,
+    color: [0, 0, 1, 1],
+    yscale: playing.player.yScale,
+    xscale: playing.player.xScale,
+    size: [playerWidth, playerHeight],
+    rotation: -playing.camera.angle * 8,
+  });
 }
 
 function drawOutlines(
