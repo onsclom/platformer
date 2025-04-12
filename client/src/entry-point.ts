@@ -39,16 +39,11 @@ function raf() {
       curUpdate(globalState, physicTickMs);
       clearInputs();
     }
-    if (timeDraws) console.time("ctx2d draw");
-    // ctx.save();
-    // curDraw(globalState, ctx);
-    // ctx.restore();
-    if (timeDraws) console.timeEnd("ctx2d draw");
 
     {
-      if (timeDraws) console.time("webgl draw");
+      // if (timeDraws) console.time("regl draw");
       reglDraw(webglCanvas);
-      if (timeDraws) console.timeEnd("webgl draw");
+      // if (timeDraws) console.timeEnd("regl draw");
     }
 
     // draw offscreen canvas to main canvas
@@ -56,12 +51,21 @@ function raf() {
       // const screenCtx = canvas.getContext("2d")!;
       // if (shouldDraw2d) screenCtx.drawImage(ctxCanvas, 0, 0);
     }
+
+    // frame time
+    const frameTime = performance.now() - frameStart;
+    console.log(`Frame time: ${frameTime.toFixed(2)}ms`);
+    const theoreticalFps = 1000 / frameTime;
+    console.log(`Theoretical FPS: ${theoreticalFps.toFixed(2)}`);
   }
 }
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "j") {
     shouldDraw2d = !shouldDraw2d;
+  }
+  if (e.key === "f") {
+    webglCanvas.requestFullscreen();
   }
 });
 

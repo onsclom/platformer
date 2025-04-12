@@ -12,21 +12,19 @@ import {
   drawPlayer,
   drawPost,
   drawTile,
-  drawTileRegl,
   drawWithCamera,
   regl,
   sceneFBO,
 } from "./regl";
 import { globalState } from "../entry-point";
-import {
-  cannonBallRadius,
-  cannonBallTrailParticleLifetime,
-  Tile,
-  timeSpentOnPhase,
-} from "./level";
+import { cannonBallRadius, Tile, timeSpentOnPhase } from "./level";
 import { playerHeight, playerWidth } from "./player";
 import { assert } from "../assert";
-import { Path } from "vinxi/dist/types/runtime/sh";
+import {
+  instances,
+  updateParticleFreelist,
+  updateParticles,
+} from "./particles";
 
 const scenes = {
   editor: Editor,
@@ -47,8 +45,12 @@ export function create() {
 }
 
 export function update(state: State, dt: number) {
+  updateParticleFreelist();
+
   // @ts-expect-error don't feel like convincing TS this is valid
   scenes[state.curScene].update(state[state.curScene], dt);
+  updateParticles(dt);
+
   clearInputs();
 }
 
@@ -111,17 +113,17 @@ export function reglDraw(canvas: HTMLCanvasElement) {
 
   // LOW RES
   /////////////
-  const targetWidth = cameraSize[0] * 25;
-  const targetHeight = cameraSize[1] * 25;
-  canvas.width = targetWidth;
-  canvas.height = targetHeight;
-  canvas.style.imageRendering = "pixelated";
+  // const targetWidth = cameraSize[0] * 25;
+  // const targetHeight = cameraSize[1] * 25;
+  // canvas.width = targetWidth;
+  // canvas.height = targetHeight;
+  // canvas.style.imageRendering = "pixelated";
 
   // FULL RES
   /////////////
-  // const rect = canvas.getBoundingClientRect();
-  // canvas.width = rect.width * devicePixelRatio;
-  // canvas.height = rect.height * devicePixelRatio;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
 
   sceneFBO.resize(canvas.width, canvas.height);
   regl.poll();
@@ -139,7 +141,8 @@ function drawScene(
     {
       const color: [number, number, number, number] = [0.7, 0.7, 0.7, 1];
       playing.level.ephemeral.background.tiles.forEach((tile) => {
-        drawTileRegl({ tileCenter: [tile.x, tile.y], color });
+        // drawTileRegl({ tileCenter: [tile.x, tile.y], color });
+        // drawTile([tile.x, tile.y], color);
       });
     }
 
@@ -179,40 +182,22 @@ function drawScene(
       }
     }
     {
-      // TODO: simplify and optimize particle system
-      const particles =
-        playing.level.ephemeral.cannonBallTrailParticles.instances.filter(
-          (p) => p.dx !== 0 || p.dy !== 0,
-        );
-      const particleCenters = particles.map((p) => [p.x, p.y]);
-      const particleRadii = particles.map(
-        (p) =>
-          (p.lifetime * cannonBallRadius) / cannonBallTrailParticleLifetime,
-      );
-      const particleColors = particles.map((p) => [0.4, 0.4, 0.4, p.lifetime]);
+      // TODO: optimize particle system
+      const particles = instances.filter((p) => p.active);
+      const centers = particles.map((p) => [p.x, p.y]) as [number, number][];
       drawCircles({
-        centers: particleCenters,
-        radii: particleRadii,
+        // @ts-expect-error
+        centers,
+        // all them do this for now i guess?
+        radii: particles.map((p) => (p.lifetime * p.radius) / p.totalTime),
         cameraPos,
         cameraSize,
-        colors: particleColors,
+        colors: particles.map((p) => [0.4, 0.4, 0.4, 1]),
       });
-
-      // for (const particle of particles) {
-      //   drawCircle({
-      //     center: [particle.x, particle.y],
-      //     radius:
-      //       (particle.lifetime * cannonBallRadius) /
-      //       cannonBallTrailParticleLifetime,
-      //     cameraPos,
-      //     cameraSize,
-      //     color: [0.4, 0.4, 0.4, 1],
-      //   });
-      // }
     }
     // drawOutlines(playing, cameraPos, cameraSize);
 
-    const color = [1, 0, 0, 1] as [number, number, number, number];
+    const color = [1, 0.3, 0.3, 1] as [number, number, number, number];
     playing.level.ephemeral.cannonBalls.instances.forEach((cannonBall) => {
       if (cannonBall.dx === 0 && cannonBall.dy === 0) return;
       drawCircle({
@@ -228,7 +213,7 @@ function drawScene(
       center: [playing.player.x, playing.player.y],
       cameraPos,
       cameraSize,
-      color: [0, 0, 1, 1],
+      color: playing.player.alive ? [0.5, 0.5, 1, 1] : [0.5, 0.5, 0.5, 1],
       yscale: playing.player.yScale,
       xscale: playing.player.xScale,
       size: [playerWidth, playerHeight],

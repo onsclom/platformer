@@ -1,6 +1,7 @@
 import { assert } from "../assert";
 import { playSound } from "../audio";
 import { circleVsRect } from "./collision";
+import { createParticle } from "./particles";
 import { playerSpeed, tileSize } from "./playing";
 import defaultLevel from "./saved-levels/HARD";
 import { gridSize } from "./top-level-constants";
@@ -14,10 +15,8 @@ const lavaParticleSpawnHz = 10;
 const lavaParticleLifetime = 500;
 const fadeInTime = 20;
 
-const maxExplosionParticles = 1000;
 const explosionParticleLifetime = 1000;
 
-const maxCannonballTrailParticles = 1000;
 export const cannonBallTrailParticleLifetime = 500;
 
 const maxCannonBalls = 500;
@@ -63,16 +62,6 @@ function createEphemeral() {
       nextParticle: 0,
       spawnTimer: 0,
     },
-    explosionParticles: {
-      instances: Array.from({ length: maxExplosionParticles }, () => ({
-        lifetime: 0,
-        x: 0,
-        y: 0,
-        dx: 0,
-        dy: 0,
-      })),
-      nextParticle: 0,
-    },
     cannonBalls: {
       instances: Array.from({ length: maxCannonBalls }, () => ({
         x: 0,
@@ -94,14 +83,6 @@ function createEphemeral() {
       spawnTimer: 0,
     },
     cannonBallTrailParticles: {
-      instances: Array.from({ length: maxCannonballTrailParticles }, () => ({
-        lifetime: 0,
-        x: 0,
-        y: 0,
-        dx: 0,
-        dy: 0,
-      })),
-      nextParticle: 0,
       spawnTimer: 0,
     },
     trampolinesTouched: new Map<string, number>(),
@@ -208,15 +189,6 @@ export function update(
     }
   }
 
-  // update explosion particles
-  for (const particle of state.ephemeral.explosionParticles.instances) {
-    if (particle.lifetime > 0) {
-      particle.lifetime -= dt;
-      particle.x += (particle.dx * dt) / 1000;
-      particle.y += (particle.dy * dt) / 1000;
-    }
-  }
-
   // spawn new cannon balls
   state.ephemeral.cannonBalls.spawnTimer += dt;
   while (state.ephemeral.cannonBalls.spawnTimer > 1000 / cannonSpawnHz) {
@@ -299,25 +271,18 @@ export function update(
       cannonBallTrailParticleSpawnHz;
     for (const ball of state.ephemeral.cannonBalls.instances) {
       if (ball.dx === 0 && ball.dy === 0) continue; // not active
-      const particle =
-        state.ephemeral.cannonBallTrailParticles.instances[
-          state.ephemeral.cannonBallTrailParticles.nextParticle
-        ]!;
-      particle.lifetime = cannonBallTrailParticleLifetime;
-      particle.x = ball.x;
-      particle.y = ball.y;
-      particle.dx = (Math.random() - 0.5) * 1;
-      particle.dy = (Math.random() - 0.5) * 1;
-      state.ephemeral.cannonBallTrailParticles.nextParticle =
-        (state.ephemeral.cannonBallTrailParticles.nextParticle + 1) %
-        maxCannonballTrailParticles;
-    }
-  }
-  for (const particle of state.ephemeral.cannonBallTrailParticles.instances) {
-    if (particle.lifetime > 0) {
-      particle.lifetime -= dt;
-      particle.x += (particle.dx * dt) / 1000;
-      particle.y += (particle.dy * dt) / 1000;
+      createParticle({
+        radius: cannonBallRadius,
+        x: ball.x,
+        y: ball.y,
+        dx: (Math.random() - 0.5) * 0.001,
+        dy: (Math.random() - 0.5) * 0.001,
+        lifetime: cannonBallTrailParticleLifetime,
+        totalTime: cannonBallTrailParticleLifetime,
+        color: [0.4, 0.4, 0.4],
+        type: "shrink",
+        active: true,
+      });
     }
   }
 
@@ -336,7 +301,7 @@ export function update(
         xDist < gridSize / 2 + cannonBallRadius &&
         yDist < gridSize / 2 + cannonBallRadius
       ) {
-        spawnCannonBallExplosion(state, ball.x, ball.y);
+        spawnCannonBallExplosion(ball.x, ball.y);
         ball.dx = 0;
         ball.dy = 0;
         shouldPlayExplodeSound = true;
@@ -523,51 +488,6 @@ export function draw(
       drawWigglyTileBorders(ctx, tile, tiles);
     }
     ctx.restore();
-  }
-
-  // draw cannon ball trails
-  ctx.fillStyle = "gray";
-  for (const particle of level.ephemeral.cannonBallTrailParticles.instances) {
-    if (particle.lifetime > 0) {
-      ctx.save();
-      ctx.translate(particle.x, -particle.y);
-      ctx.scale(
-        (particle.lifetime * cannonBallRadius) /
-          cannonBallTrailParticleLifetime,
-        (particle.lifetime * cannonBallRadius) /
-          cannonBallTrailParticleLifetime,
-      );
-      const timeAlive = cannonBallTrailParticleLifetime - particle.lifetime;
-      ctx.globalAlpha = Math.min(
-        timeAlive / fadeInTime,
-        1 - timeAlive / cannonBallTrailParticleLifetime,
-      );
-      ctx.beginPath();
-      ctx.arc(0, 0, 1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
-
-  // draw explosion particles
-  ctx.fillStyle = "gray";
-  const explosionParticleRadius = cannonBallRadius * 1.5;
-  for (const particle of level.ephemeral.explosionParticles.instances) {
-    if (particle.lifetime > 0) {
-      ctx.save();
-      ctx.translate(particle.x, -particle.y);
-      ctx.scale(
-        (particle.lifetime * explosionParticleRadius) /
-          explosionParticleLifetime,
-        (particle.lifetime * explosionParticleRadius) /
-          explosionParticleLifetime,
-      );
-      ctx.globalAlpha = (particle.lifetime / explosionParticleLifetime) ** 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, 1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
   }
 
   // draw lava particles
@@ -795,22 +715,23 @@ function drawCannon(
 }
 
 const explosionAmount = 5;
-function spawnCannonBallExplosion(level: State, x: number, y: number) {
+function spawnCannonBallExplosion(x: number, y: number) {
   for (let i = 0; i < explosionAmount; i++) {
     const randAng = Math.random() * Math.PI * 2; // random angle for explosion
     const randSpeed = Math.random() * 2;
-    level.ephemeral.explosionParticles.instances[
-      level.ephemeral.explosionParticles.nextParticle
-    ] = {
-      lifetime: explosionParticleLifetime,
+
+    createParticle({
+      radius: cannonBallRadius,
       x,
       y,
-      dx: Math.cos(randAng) * randSpeed,
-      dy: Math.sin(randAng) * randSpeed,
-    };
-    level.ephemeral.explosionParticles.nextParticle =
-      (level.ephemeral.explosionParticles.nextParticle + 1) %
-      maxExplosionParticles;
+      dx: Math.cos(randAng) * randSpeed * 0.001,
+      dy: Math.sin(randAng) * randSpeed * 0.001,
+      lifetime: explosionParticleLifetime,
+      totalTime: explosionParticleLifetime,
+      color: [0.4, 0.4, 0.4],
+      type: "shrink",
+      active: true,
+    });
   }
 }
 

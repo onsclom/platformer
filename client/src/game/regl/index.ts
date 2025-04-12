@@ -879,15 +879,15 @@ export const drawCircles = regl<
       [0.5, 0.5],
       [-0.5, 0.5],
     ],
-    center: (ctx, props) => ({
+    center: (_ctx, props) => ({
       buffer: props.centers,
       divisor: 1,
     }),
-    radius: (ctx, props) => ({
+    radius: (_ctx, props) => ({
       buffer: props.radii,
       divisor: 1,
     }),
-    color: (ctx, props) => ({
+    color: (_ctx, props) => ({
       buffer: props.colors || [],
       divisor: 1,
     }),

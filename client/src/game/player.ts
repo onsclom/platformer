@@ -1,20 +1,18 @@
 import { animate } from "../animate";
 import { State as CameraState } from "./camera";
 import { lineWidth } from "./level";
+import { createParticle } from "./particles";
 
 export const playerColor = "hsl(55, 100%, 85%)";
-export const jumpBufferTime = 250;
+export const jumpBufferTime = 150;
 
 type State = ReturnType<typeof create>;
 
 export const playerWidth = 0.8;
 export const playerHeight = 1.2;
 
-const maxPlayerParticles = 1000;
-
 export const playerParticleSpawnRateWhileWalking = 15;
 const playerParticleLifetime = 500;
-const fadeInTime = 50;
 
 function create() {
   return {
@@ -40,14 +38,6 @@ function create() {
     canHalveJump: false,
 
     particles: {
-      instances: Array.from({ length: maxPlayerParticles }, () => ({
-        lifetime: 0,
-        x: 0,
-        y: 0,
-        dx: 0,
-        dy: 0,
-      })),
-      nextParticle: 0,
       spawnTimer: 0,
     },
   };
@@ -56,15 +46,6 @@ function create() {
 function update(state: State, dt: number) {
   state.xScale = animate(state.xScale, 1, dt * 0.01);
   state.yScale = animate(state.yScale, 1, dt * 0.01);
-
-  // update particles
-  for (const particle of state.particles.instances) {
-    if (particle.lifetime > 0) {
-      particle.lifetime -= dt;
-      particle.x += (particle.dx * dt) / 1000;
-      particle.y += (particle.dy * dt) / 1000;
-    }
-  }
 }
 
 // draw happens inside camera
@@ -73,28 +54,6 @@ function draw(
   ctx: CanvasRenderingContext2D,
   camera: CameraState,
 ) {
-  ctx.fillStyle = "gray";
-  for (const particle of state.particles.instances) {
-    if (particle.lifetime > 0) {
-      ctx.save();
-      ctx.translate(particle.x, -particle.y);
-      ctx.scale(
-        (particle.lifetime * 0.4) / playerParticleLifetime,
-        (particle.lifetime * 0.4) / playerParticleLifetime,
-      );
-
-      const timeAlive = playerParticleLifetime - particle.lifetime;
-      ctx.globalAlpha = Math.min(
-        (timeAlive / fadeInTime) ** 2,
-        1 - timeAlive / playerParticleLifetime,
-      );
-
-      ctx.beginPath();
-      ctx.arc(0, 0, 0.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
   {
     ctx.save();
     ctx.translate(state.x, -state.y);
@@ -133,30 +92,37 @@ function draw(
   }
 }
 
-function spawnParticle(player: State, agitationFactor = 0, onSide?: number) {
-  const particle = player.particles.instances[player.particles.nextParticle]!;
+function spawnParticle(player: State, agitationFactor = 0.5, onSide?: number) {
+  const lifetime = playerParticleLifetime;
 
-  particle.lifetime = playerParticleLifetime;
-
+  let x = 0;
+  let y = 0;
   if (onSide === undefined) {
-    particle.x = player.x + (Math.random() - 0.5) * playerWidth;
-    particle.y =
+    x = player.x + (Math.random() - 0.5) * playerWidth;
+    y =
       player.y -
       playerHeight * 0.5 +
       (Math.random() - 0.5) * playerHeight * 0.25;
   } else {
-    particle.x =
+    x =
       player.x +
       onSide * playerWidth * 0.5 +
       (Math.random() - 0.5) * playerHeight * 0.25;
-    particle.y =
-      player.y - playerHeight * 0.5 + (Math.random() - 0.5) * playerHeight;
+    y = player.y - playerHeight * 0.5 + (Math.random() - 0.5) * playerHeight;
   }
 
-  particle.dx = (Math.random() - 0.5) * agitationFactor;
-  particle.dy = (Math.random() - 0.5) * agitationFactor;
-  player.particles.nextParticle =
-    (player.particles.nextParticle + 1) % maxPlayerParticles;
+  createParticle({
+    lifetime,
+    totalTime: playerParticleLifetime,
+    x,
+    y,
+    active: true,
+    color: [1, 0, 0],
+    type: "shrink",
+    radius: 0.4,
+    dx: (Math.random() - 0.5) * agitationFactor * 0.001,
+    dy: (Math.random() - 0.5) * agitationFactor * 0.001,
+  });
 }
 
 export const Player = { create, update, draw, spawnParticle };
