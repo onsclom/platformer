@@ -11,8 +11,6 @@ const noise3D = createNoise3D();
 type State = ReturnType<typeof create>;
 
 const maxLavaParticles = 1000;
-const lavaParticleSpawnHz = 10;
-const lavaParticleLifetime = 500;
 const fadeInTime = 20;
 
 const explosionParticleLifetime = 1000;
@@ -51,17 +49,6 @@ export type Tile = {
 
 function createEphemeral() {
   return {
-    lavaParticles: {
-      instances: Array.from({ length: maxLavaParticles }, () => ({
-        lifetime: 0,
-        x: 0,
-        y: 0,
-        dx: 0,
-        dy: 0,
-      })),
-      nextParticle: 0,
-      spawnTimer: 0,
-    },
     cannonBalls: {
       instances: Array.from({ length: maxCannonBalls }, () => ({
         x: 0,
@@ -151,42 +138,6 @@ export function update(
         return { x, y };
       },
     );
-  }
-
-  // update lava particles
-  state.ephemeral.lavaParticles.spawnTimer += dt;
-  while (
-    state.ephemeral.lavaParticles.spawnTimer >
-    1000 / lavaParticleSpawnHz
-  ) {
-    state.ephemeral.lavaParticles.spawnTimer -= 1000 / lavaParticleSpawnHz;
-    for (const tile of state.static.tiles) {
-      if (tile.type !== "lava") continue;
-      const particle =
-        state.ephemeral.lavaParticles.instances[
-          state.ephemeral.lavaParticles.nextParticle
-        ]!;
-
-      particle.lifetime = lavaParticleLifetime;
-      particle.x = tile.x - gridSize / 2 + Math.random() * gridSize;
-      particle.y = tile.y - gridSize / 2 + Math.random() * gridSize;
-
-      particle.dx = Math.random() * 0.1;
-      particle.dy = 1 + Math.random() * 0.1;
-
-      state.ephemeral.lavaParticles.nextParticle =
-        (state.ephemeral.lavaParticles.nextParticle + 1) % maxLavaParticles;
-    }
-  }
-  for (const particle of state.ephemeral.lavaParticles.instances) {
-    if (particle.lifetime > 0) {
-      particle.lifetime -= dt;
-      particle.x += (particle.dx * dt) / 1000;
-      particle.y +=
-        ((particle.dy * dt) / 1000) *
-        (particle.lifetime / lavaParticleLifetime) *
-        1;
-    }
   }
 
   // spawn new cannon balls
@@ -488,29 +439,6 @@ export function draw(
       drawWigglyTileBorders(ctx, tile, tiles);
     }
     ctx.restore();
-  }
-
-  // draw lava particles
-  ctx.fillStyle = "orange";
-  for (const particle of level.ephemeral.lavaParticles.instances) {
-    if (particle.lifetime > 0) {
-      ctx.save();
-      ctx.translate(particle.x, -particle.y);
-      ctx.scale(
-        (particle.lifetime * 0.25) / lavaParticleLifetime,
-        (particle.lifetime * 0.25) / lavaParticleLifetime,
-      );
-      const timeAlive = lavaParticleLifetime - particle.lifetime;
-
-      ctx.globalAlpha = Math.min(
-        timeAlive / fadeInTime,
-        1 - timeAlive / lavaParticleLifetime,
-      );
-      ctx.beginPath();
-      ctx.arc(0, 0, gridSize / 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
   }
 
   // draw cannon balls
