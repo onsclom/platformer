@@ -47,7 +47,7 @@ export function update(state: State, dt: number) {
     restartLevel(state);
     return;
   }
-  if (justPressed.has("KeyE") && import.meta.env.DEV) {
+  if (justPressed.has("KeyE")) {
     globalState.curScene = "editor";
     globalState.editor.camera.x = globalState.playing.player.x;
     globalState.editor.camera.y = globalState.playing.player.y;

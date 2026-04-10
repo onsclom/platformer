@@ -183,7 +183,7 @@ export function update(state: State, dt: number) {
     globalState.curScene = "playing";
     restartLevel(globalState.playing);
   }
-  if (justPressed.has("KeyE") && import.meta.env.DEV) {
+  if (justPressed.has("KeyE")) {
     globalState.curScene = "playing";
     globalState.playing.level = globalState.editor.level;
     restartPlayer(globalState.playing);
